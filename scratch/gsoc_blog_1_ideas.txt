@@ -2,10 +2,11 @@ week of 5/11:
 -had call with all gsoc mentors and students to get introduced
 -created a work schedule and how best to provide updates. general gitter channel and project-specific channels. on/off weeks.
 -suggested a few things here and there in the gitter channel (identifying cpu cores, where to find some large spatial datasets)
--created a workspace in my cmoputer where for all gsoc 2020 work (provide file structure)
--downloaded the relevant papers and began reviewing
--create a scractc workbook to understand esda moran's i function
--investing strange behavior of local getis and repsonding to some issues
+-created a workspace in my computer for all gsoc 2020 work (will provide file structure)
+-downloaded the relevant papers and began reviewing, starting with LOSH!
+-create workbooks to understand structure of esda functions
+-investing strange behavior of local getis and repsonding to some issues, was wrong in the end but I think it might have played a slight role!
 week of 5/18: 
 - familiarizing myself with pysal workflow 
+- pseudo coded LOSH , read papers
 - how best to suggest changes
