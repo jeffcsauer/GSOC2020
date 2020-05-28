@@ -24,9 +24,11 @@ GSOC2020
 |   |   LOSH.py  
 |   |   Local_Join_Counts.py
 |   |   ...
-└───notebooks               # notebooks demonstrating the functions on toy and real-world data
-|   |   LOSH.ipynb
-|   |   Local_Join_Counts.ipynb
+└───validation              # notebooks validating the functions on toy and real-world data
+|   |   Validation_LOSH.ipynb
+|   |   Validation_LJC_univariate.ipynb
+|   |   Validation_LJC_bivariate.ipynb
+|   |   Validation_LJC_multivariate.ipynb
 |   |   ...
 ```
 

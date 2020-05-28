@@ -1,0 +1,26 @@
+---
+title: "spdep LOSH calculations"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## spdep LOSH function
+
+```{r}
+# From the documentation
+library(spdep)
+library(rgdal)
+
+# Load in test data - Dnever housing data fromhttps://geodacenter.github.io/data-and-lab//census_2010_excluded-variables/
+denver <- st_read("C:/Users/jeffe/Dropbox/GSOC2020/validation/data/denver/denver.shp")
+# Create a neighbors list
+denver_nb <- poly2nb(denver)
+denver_lw <- nb2listw(denver_nb)
+# Calculate losh measures
+resLOSH <- as.data.frame(LOSH(denver$HU_RENTED, denver_lw))
+# Save to csv
+write.csv(resLOSH, "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/spdep_denver_losh.csv")
+```
