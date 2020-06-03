@@ -1,0 +1,14 @@
+1. Download and install GeoDa from: https://geodacenter.github.io/
+2. Open GeoDa
+3. Load the pre-installed Baltimore Home Sales dataset (n=211). More information available here: https://geodacenter.github.io/data-and-lab//baltim/
+4a. Create a new spatial weights matrix for the data. Go to Tools>Weights Manager.
+4b. Create a new set of spatial weights by clicking the 'Create' button. 
+4c. In the Weights File Creation menu, use the 'station' as the ID variable. 
+4d. Click the 'Distance Weight' tab. Ensure that the X-Centroid and Y-Centroid are set to the X-coordinate and Y-coordinate, respectively.
+4e. Click the 'K-nearest neighbors' tab and set the Number of neighbors to 5. Click 'Create' (you may want to save the weights to use later).
+5a. Return to the GeoDa main menu. Go to the Space menu, and click 'Univariate Local Join Count'. 
+5b. Select 'dwell' as the First Variable (X). Make sure that weights are set to the weights you created in step 4.
+5c. Click 'Okay'.
+6a. A new window should have appeared showing the significance for Local Join Counts. Right click the white space with the dots and click 'Save Results'.
+6b. Make sure to save all of the values (Local Join Count, Number of Neighbors, and Pseudo p-value). This step saves the results to the dataset in Geoda.
+6c. Export the dataset for external comparison/visualization. Return to the GeoDa menu and go to File>Save as. Save your file to your flavor of choice.
