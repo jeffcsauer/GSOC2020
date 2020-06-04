@@ -6,9 +6,22 @@
 4c. In the Weights File Creation menu, use the 'station' as the ID variable. 
 4d. Click the 'Distance Weight' tab. Ensure that the X-Centroid and Y-Centroid are set to the X-coordinate and Y-coordinate, respectively.
 4e. Click the 'K-nearest neighbors' tab and set the Number of neighbors to 5. Click 'Create' (you may want to save the weights to use later).
+UNIVARIATE LOCAL JOIN COUNT
 5a. Return to the GeoDa main menu. Go to the Space menu, and click 'Univariate Local Join Count'. 
 5b. Select 'dwell' as the First Variable (X). Make sure that weights are set to the weights you created in step 4.
 5c. Click 'Okay'.
 6a. A new window should have appeared showing the significance for Local Join Counts. Right click the white space with the dots and click 'Save Results'.
 6b. Make sure to save all of the values (Local Join Count, Number of Neighbors, and Pseudo p-value). This step saves the results to the dataset in Geoda.
+6c. Export the dataset for external comparison/visualization. Return to the GeoDa menu and go to File>Save as. Save your file to your flavor of choice.
+BIVARIATE LOCAL JOIN COUNT
+5a. Return to the GeoDa main menu. Go to the space menu, and click Bivariate Local Join Count.
+5b. Select 'dwell' as the First Variable (X) and 'patio' as Second Variable (Y). Make sure that weights are set to the weights you created in step 4.
+6a. A new window should have appeared showing the significance for the Univariate Local Join Counts. Right click the white space with the dots and click 'Save Results'.
+6b. Make sure to save all of the values. For the bivariate case I rename each to BV_JC (Local Join Counts), BV_NN (Number of Neighbors), and and BV_PP_VAL (Pseudo p-value). This step saves the results to the dataset in Geoda.
+6c. Export the dataset for external comparison/visualization. Return to the GeoDa menu and go to File>Save as. Save your file to your flavor of choice.
+MULTIVARIATE LOCAL JOIN COUNT (Co-Location Join Count)
+5a. Return to the GeoDa main menu. Go to the space menu, and click Co-Location Join Count.
+5b. Select 'dwell' as the first variable (X), 'patio' as the second variable, and 'firepl' as the third variable. Make sure that weights are set to the weights you created in step 4.
+6a. A new window should have appeared showing the significance for the Co-Location Join Counts. Right click the white space with the dots and click 'Save Results'.
+6b. Make sure to save all of the values. For the multivariate case I rename each to MV_JC (Local Join Counts), MV_NN (Number of Neighbors), and and MV_PP_VAL (Pseudo p-value). This step saves the results to the dataset in Geoda.
 6c. Export the dataset for external comparison/visualization. Return to the GeoDa menu and go to File>Save as. Save your file to your flavor of choice.
