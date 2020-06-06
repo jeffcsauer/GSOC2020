@@ -20,7 +20,24 @@ denver <- st_read("C:/Users/jeffe/Dropbox/GSOC2020/validation/data/denver/denver
 denver_nb <- poly2nb(denver)
 denver_lw <- nb2listw(denver_nb)
 # Calculate losh measures
-resLOSH <- as.data.frame(LOSH(denver$HU_RENTED, denver_lw))
+  #resLOSH <- as.data.frame(LOSH(denver$HU_RENTED, denver_lw))
+  # With chisquare pvalues
+  resLOSH <- as.data.frame(LOSH.cs(denver$HU_RENTED, denver_lw))
 # Save to csv
 write.csv(resLOSH, "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/spdep_denver_losh.csv")
+```
+
+```{r}
+
+
+# Load in test data - Dnever housing data fromhttps://geodacenter.github.io/data-and-lab//census_2010_excluded-variables/
+listings <- st_read("C:/Users/jeffe/Dropbox/GSOC2020/validation/data/neighborhoods_listings.shp")
+# Create a neighbors list
+listings_nb <- poly2nb(listings)
+listings_lw <- nb2listw(listings_nb)
+# Calculate losh measures
+  #resLOSH <- as.data.frame(LOSH(denver$HU_RENTED, denver_lw))
+  # With chisquare pvalues
+  resLOSH <- as.data.frame(LOSH.cs(listings$median_pri, listings_lw)); resLOSH
+
 ```
