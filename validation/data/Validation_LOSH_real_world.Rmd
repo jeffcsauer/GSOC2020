@@ -16,6 +16,11 @@ library(rgdal)
 
 # Load in test data - Dnever housing data fromhttps://geodacenter.github.io/data-and-lab//census_2010_excluded-variables/
 denver <- st_read("C:/Users/jeffe/Dropbox/GSOC2020/validation/data/denver/denver.shp")
+  # Save as geopackage
+  outname <- "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/denver/denver.gpkg"
+  denver_sp <- as_Spatial(denver)
+  writeOGR(denver_sp, dsn = outname, layer = "denver", driver = "GPKG")
+  
 # Create a neighbors list
 denver_nb <- poly2nb(denver)
 denver_lw <- nb2listw(denver_nb)
@@ -25,19 +30,4 @@ denver_lw <- nb2listw(denver_nb)
   resLOSH <- as.data.frame(LOSH.cs(denver$HU_RENTED, denver_lw))
 # Save to csv
 write.csv(resLOSH, "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/spdep_denver_losh.csv")
-```
-
-```{r}
-
-
-# Load in test data - Dnever housing data fromhttps://geodacenter.github.io/data-and-lab//census_2010_excluded-variables/
-listings <- st_read("C:/Users/jeffe/Dropbox/GSOC2020/validation/data/neighborhoods_listings.shp")
-# Create a neighbors list
-listings_nb <- poly2nb(listings)
-listings_lw <- nb2listw(listings_nb)
-# Calculate losh measures
-  #resLOSH <- as.data.frame(LOSH(denver$HU_RENTED, denver_lw))
-  # With chisquare pvalues
-  resLOSH <- as.data.frame(LOSH.cs(listings$median_pri, listings_lw)); resLOSH
-
 ```
