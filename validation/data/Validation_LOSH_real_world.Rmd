@@ -14,20 +14,73 @@ knitr::opts_chunk$set(echo = TRUE)
 library(spdep)
 library(rgdal)
 
-# Load in test data - Dnever housing data fromhttps://geodacenter.github.io/data-and-lab//census_2010_excluded-variables/
-denver <- st_read("C:/Users/jeffe/Dropbox/GSOC2020/validation/data/denver/denver.shp")
+###########################################
+# Prepare workspace
+
+# Load in test data - Dnever housing data from https://geodacenter.github.io/data-and-lab//census_2010_excluded-variables/
+# Downloaded as .zip, converted to .gpkg that is now downloaded from Github url
+denver <- st_read("https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/denver/denver.gpkg")
   # Save as geopackage
-  outname <- "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/denver/denver.gpkg"
-  denver_sp <- as_Spatial(denver)
-  writeOGR(denver_sp, dsn = outname, layer = "denver", driver = "GPKG")
-  
-# Create a neighbors list
+    #outname <- "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/denver/denver.gpkg"
+    #denver_sp <- as_Spatial(denver)
+    #writeOGR(denver_sp, dsn = outname, layer = "denver", driver = "GPKG")
+
+############################################
+# Create spatial weights
+
+# Create a row-standardized neighbors list
 denver_nb <- poly2nb(denver)
 denver_lw <- nb2listw(denver_nb)
+denver_lw$weights[1]
+
 # Calculate losh measures
   #resLOSH <- as.data.frame(LOSH(denver$HU_RENTED, denver_lw))
   # With chisquare pvalues
   resLOSH <- as.data.frame(LOSH.cs(denver$HU_RENTED, denver_lw))
-# Save to csv
-write.csv(resLOSH, "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/spdep_denver_losh.csv")
-```
+  resLOSH
+    
+  # Save to csv
+    #write.csv(resLOSH, "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/spdep_denver_losh.csv")
+
+# Create a NON row-standardized neighbors list
+denver_lw_ns <- nb2listw(denver_nb, style = "B")
+denver_lw_ns$weights[1]
+
+  # Calculate losh measures for non standardized list
+  resLOSH_ns <- as.data.frame(LOSH.cs(denver$HU_RENTED, denver_lw_ns))
+  
+############################################
+# Seems to be same result, why? 
+
+  # Examine LOSH function
+  LOSH
+  
+  # Note that authors first define Wi as rowsum of each list weight
+  Wi <- vapply(denver_lw$weights, sum, FUN.VALUE = 0); Wi
+  Wi_ns <- vapply(denver_lw_ns$weights, sum, FUN.VALUE = 0); Wi_ns
+  
+  # When calculating the mean, x_bar_i, they divide the spatial lag by the row sum of the spatial weights.
+  # the x_bar_i values are then equal even when using non standardized row weights
+  x_bar_i <- lag.listw(denver_lw, denver$HU_RENTED)/Wi; x_bar_i
+  x_bar_i_ns <- lag.listw(denver_lw_ns, denver$HU_RENTED)/Wi_ns; x_bar_i_ns
+  
+    round(x_bar_i,3) == round(x_bar_i_ns,3)
+
+  res_ei <- abs(denver$HU_RENTED - x_bar_i)^2; res_ei
+  res_ei_ns <- abs(denver$HU_RENTED - x_bar_i_ns)^2; res_ei_ns
+  
+  # The only difference between the two is the denom_hi, but it doesn't seem to matter...
+  denom_hi <- mean(res_ei) * Wi; denom_hi
+  denom_hi_ns <- mean(res_ei_ns) * Wi_ns; denom_hi_ns
+  
+  # As the results are equal to each other!
+  lag.listw(denver_lw_ns, res_ei_ns)
+  
+  res_Hi <- lag.listw(denver_lw, res_ei)/denom_hi; res_Hi
+  res_Hi_ns <- lag.listw(denver_lw_ns, res_ei_ns)/denom_hi_ns; res_Hi_ns
+
+  # Validate
+  temp <- as.data.frame(LOSH.cs(denver$HU_RENTED, denver_lw))
+  temp2 <- as.data.frame(LOSH.cs(denver$HU_RENTED, denver_lw_ns))
+
+  
