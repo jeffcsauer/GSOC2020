@@ -93,13 +93,13 @@ class losh(BaseEstimator):
         # Calculate and adjust residuals based on multiplier
         yresid = abs(y-ylag)**a
         # Calculate denominator of Hi calculation 
-        # as mean of residuals - does np.mean need to be an int?
+        # as mean of residuals times rowsum
         denom =  np.mean(yresid) * np.array(rowsum)
         # Carry out final $H_{i}$ calculation by dividing
         # spatial average of residuals by denom
         Hi = lp.weights.lag_spatial(w, yresid) / denom
         
-        # Calculate variance
+        # Calculate variance for inference
         n = len(y)
         # Calculate average of residuals
         yresid_mean = np.mean(yresid)
