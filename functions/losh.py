@@ -93,21 +93,25 @@ class losh(BaseEstimator):
         # Calculate and adjust residuals based on multiplier
         yresid = abs(y-ylag)**a
         # Calculate denominator of Hi calculation 
-        # as mean of residuals times rowsum
+        # as mean of residuals - does np.mean need to be an int?
         denom =  np.mean(yresid) * np.array(rowsum)
         # Carry out final $H_{i}$ calculation by dividing
         # spatial average of residuals by denom
         Hi = lp.weights.lag_spatial(w, yresid) / denom
         
-        # Calculate variance for inference
+        # Calculate variance
         n = len(y)
         # Calculate average of residuals
         yresid_mean = np.mean(yresid)
         # Calculate VarHi
-        squared_rowsum = (n*np.array([np.sum(np.array(list(w[i].values()))**2) for i in w.id_order]))
-        VarHi = ((n-1)**-1) * \
+        squared_rowsum = np.asarray(w.sparse
+                           .multiply(w.sparse)
+                           .sum(axis=1)
+                          ).flatten()
+                          
+        VarHi =  ((n-1)**-1) * \
                  (denom**-2) * \
                  ((np.sum(yresid**2)/n) - yresid_mean**2) * \
-                 (squared_rowsum - (rowsum**2))
+                 ((n*squared_rowsum) - (rowsum**2))
 
         return (Hi, ylag, yresid, VarHi)
