@@ -1,4 +1,5 @@
-import numpy
+import numpy as np
+import warnings
 from scipy import sparse
 from scipy import stats
 from sklearn.base import BaseEstimator
@@ -39,7 +40,7 @@ class losh(BaseEstimator):
         self.connectivity = connectivity
         self.inference = inference
         
-    def fit(self, y, a=None):
+    def fit(self, y, a=2):
         """
         Arguments
         ---------
@@ -65,12 +66,16 @@ class losh(BaseEstimator):
         
         if self.inference is None:
             return self
-        elif self.inference == "chi-square":
-            print("Note: chi-square inference selected. This assumes a=2.")
-            dof = 2/self.VarHi
-            Zi = (2*self.Hi)/self.VarHi
-            self.pval = 1 - stats.chi2.cdf(Zi, dof)
-
+        elif self.inference == 'chi-square':
+            if a != 2:
+                warnings.warn(f'Chi-square inference assumes that a=2, but a={a}. This means the inference will be invalid!')
+            else:
+                dof = 2/self.VarHi
+                Zi = (2*self.Hi)/self.VarHi
+                self.pval = 1 - stats.chi2.cdf(Zi, dof)
+        else:
+            raise NotImplementedError(f'The requested inference method ({self.inference}) is not currently supported!')
+        
         return self
 
     @staticmethod
