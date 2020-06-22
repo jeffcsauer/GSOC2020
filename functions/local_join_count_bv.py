@@ -3,11 +3,13 @@ import pandas as pd
 from scipy import sparse
 from sklearn.base import BaseEstimator
 
+PERMUTATIONS = 999
+
 class Local_Join_Count_BV(BaseEstimator):
 
     """Global Spatial Pearson Statistic"""
 
-    def __init__(self, connectivity=None):
+    def __init__(self, connectivity=None, permutations=PERMUTATIONS):
         """
         Initialize a Join_Counts_Local estimator
         Arguments
@@ -17,15 +19,14 @@ class Local_Join_Count_BV(BaseEstimator):
                         between observed units. Will be row-standardized.
         Attributes
         ----------
-        BJC_:  numpy.ndarray (1,)
-               array containing the estimated Bivariate Local Join Counts ...
-        CLC_:  numpy.ndarray (1,)
-               array containing the estimated Bivariate Local Join Counts ...
+        LJC :  numpy.ndarray (1,)
+               array containing the estimated Bivariate Local Join Counts
         """
 
         self.connectivity = connectivity
+        self.permutations = permutations
 
-    def fit(self, x, z, case=None):
+    def fit(self, x, z, case=None, permutations=999):
         """
         Arguments
         ---------
@@ -44,7 +45,23 @@ class Local_Join_Count_BV(BaseEstimator):
         w = self.connectivity
         w.transformation = 'b'
 
-        self.LJC_ = self._statistic(x, z, w, case=case)
+        self.x = x
+        self.z = z
+        self.n = len(x)
+        self.w = w
+
+        self.LJC = self._statistic(x, z, w, case=case)
+
+        if permutations:
+            self._crand()
+            sim = np.transpose(self.rjoins)
+            above = sim >= self.LJC
+            larger = above.sum(0)
+            low_extreme = (self.permutations - larger) < larger
+            larger[low_extreme] = self.permutations - larger[low_extreme]
+            # 1 - simulated p-value? or just the simulated p-value?
+            # values of 0.001 seem to be NA or error?
+            self.p_sim = (larger + 1.0) / (permutations + 1.0)
 
         return self
 
@@ -74,7 +91,7 @@ class Local_Join_Count_BV(BaseEstimator):
                                         BJC.astype('uint8')).reset_index()
             adj_list_BJC.columns = ['BJC', 'ID']
             adj_list_BJC = adj_list_BJC.groupby(by='ID').sum()
-            return adj_list_BJC.BJC.values
+            return (adj_list_BJC.BJC.values)
         elif case == "CLC":
             CLC = (focal_x == 1) & (focal_z == 1) & \
                   (neighbor_x == 1) & (neighbor_z == 1)
@@ -87,3 +104,40 @@ class Local_Join_Count_BV(BaseEstimator):
             print("Please specify which type of bivariate Local Join Count \
             you would like to calculate (either 'BJC' or 'CLC'). See Anselin \
             and Li 2019 p. 9-10 for more information")
+            
+    def _crand(self):
+        """
+        conditional randomization
+
+        for observation i with ni neighbors,  the candidate set cannot include
+        i (we don't want i being a neighbor of i). we have to sample without
+        replacement from a set of ids that doesn't include i. numpy doesn't
+        directly support sampling wo replacement and it is expensive to
+        implement this. instead we omit i from the original ids,  permute the
+        ids and take the first ni elements of the permuted ids as the
+        neighbors to i in each randomization.
+
+        """
+        # converted z to y
+        # renamed lisas to joins
+        y = self.x
+        z = self.z
+        n = len(y)
+        joins = np.zeros((self.n, self.permutations))
+        n_1 = self.n - 1
+        prange = list(range(self.permutations))
+        k = self.w.max_neighbors + 1
+        nn = self.n - 1
+        rids = np.array([np.random.permutation(nn)[0:k] for i in prange])
+        ids = np.arange(self.w.n)
+        ido = self.w.id_order
+        w = [self.w.weights[ido[i]] for i in ids]
+        wc = [self.w.cardinalities[ido[i]] for i in ids]
+
+        for i in range(self.w.n):
+            idsi = ids[ids != i]
+            np.random.shuffle(idsi)
+            tmp = y[idsi[rids[:, 0:wc[i]]]]
+            # Add z[i]?
+            joins[i] = y[i] * z[i] * (w[i] * tmp).sum(1)
+        self.rjoins = joins
