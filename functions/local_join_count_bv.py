@@ -7,7 +7,7 @@ PERMUTATIONS = 999
 
 class Local_Join_Count_BV(BaseEstimator):
 
-    """Global Spatial Pearson Statistic"""
+    """Bivariate local join counts"""
 
     def __init__(self, connectivity=None, permutations=PERMUTATIONS):
         """
@@ -120,9 +120,9 @@ class Local_Join_Count_BV(BaseEstimator):
         """
         # converted z to y
         # renamed lisas to joins
-        y = self.x
+        x = self.x
         z = self.z
-        n = len(y)
+        n = len(x)
         joins = np.zeros((self.n, self.permutations))
         n_1 = self.n - 1
         prange = list(range(self.permutations))
@@ -137,7 +137,7 @@ class Local_Join_Count_BV(BaseEstimator):
         for i in range(self.w.n):
             idsi = ids[ids != i]
             np.random.shuffle(idsi)
-            tmp = y[idsi[rids[:, 0:wc[i]]]]
-            # Add z[i]?
-            joins[i] = y[i] * z[i] * (w[i] * tmp).sum(1)
+            # Mirroring moran_local_bv()
+            tmp = x[idsi[rids[:, 0:wc[i]]]]
+            joins[i] = z[i] * (w[i] * tmp).sum(1)
         self.rjoins = joins
