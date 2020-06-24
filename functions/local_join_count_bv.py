@@ -118,9 +118,8 @@ class Local_Join_Count_BV(BaseEstimator):
         neighbors to i in each randomization.
 
         """
-        # converted z to y
+        # converted y to z
         # renamed lisas to joins
-        x = self.x
         z = self.z
         n = len(x)
         joins = np.zeros((self.n, self.permutations))
@@ -138,6 +137,6 @@ class Local_Join_Count_BV(BaseEstimator):
             idsi = ids[ids != i]
             np.random.shuffle(idsi)
             # Mirroring moran_local_bv()
-            tmp = x[idsi[rids[:, 0:wc[i]]]]
+            tmp = z[idsi[rids[:, 0:wc[i]]]]
             joins[i] = z[i] * (w[i] * tmp).sum(1)
         self.rjoins = joins
