@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 from sklearn.base import BaseEstimator
+from libpysal import weights
 
 PERMUTATIONS = 999
 
@@ -11,7 +12,7 @@ class Local_Join_Count_MV(BaseEstimator):
 
     def __init__(self, connectivity=None, permutations=PERMUTATIONS):
         """
-        Initialize a Join_Counts_Local estimator
+        Initialize a Local_Join_Count_MV estimator
         Arguments
         ---------
         connectivity:   scipy.sparse matrix object
@@ -19,8 +20,10 @@ class Local_Join_Count_MV(BaseEstimator):
                         between observed units. Will be row-standardized.
         Attributes
         ----------
-        MJC_:  numpy.ndarray (1,)
-               array containing the Multivariate Local Join Counts ...
+        LJC       :   numpy.ndarray
+                      array containing the estimated Multivariate Local Join Counts.
+        p_sim       :   numpy.ndarray
+                        array containing the simulated p-values for each unit.
         """
 
         self.connectivity = connectivity
@@ -41,7 +44,9 @@ class Local_Join_Count_MV(BaseEstimator):
         """
 
         w = self.connectivity
-        w.transformation = 'b'
+        # Fill the diagonal with 0s
+        w = weights.util.fill_diagonal(w, val=0)
+        w.transform = 'b'
         
         self.n = len(variables[0])
         self.w = w
@@ -50,18 +55,18 @@ class Local_Join_Count_MV(BaseEstimator):
         
         self.ext = np.prod(np.vstack(variables), axis=0)
 
-        self.MJC_ = self._statistic(variables, w)
+        self.LJC = self._statistic(variables, w)
         
         if permutations:
             self._crand()
             sim = np.transpose(self.rjoins)
-            above = sim >= self.MJC_
+            above = sim >= self.LJC
             larger = above.sum(0)
             low_extreme = (self.permutations - larger) < larger
             larger[low_extreme] = self.permutations - larger[low_extreme]
-            # 1 - simulated p-value? or just the simulated p-value?
-            # values of 0.001 seem to be NA or error?
             self.p_sim = (larger + 1.0) / (permutations + 1.0)
+            # Set p-values for those with LJC of 0 to NaN
+            self.p_sim[self.LJC==0] = 'NaN'
 
         return self
 

@@ -1,17 +1,17 @@
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
-import libpysal
+from libpysal import weights
 
 PERMUTATIONS = 999
 
 class Local_Join_Count(BaseEstimator):
 
-    """Local Join Count Statistic"""
+    """Univariate Local Join Count Statistic"""
 
     def __init__(self, connectivity=None, permutations=PERMUTATIONS):
         """
-        Initialize a Join_Counts_Local estimator
+        Initialize a Local_Join_Count estimator
         Arguments
         ---------
         connectivity:   scipy.sparse matrix object
@@ -19,9 +19,11 @@ class Local_Join_Count(BaseEstimator):
                         between observed units. Need not be row-standardized.
         Attributes
         ----------
-        BB:  numpy.ndarray (1,)
-             array containing the estimated Local Join Count coefficients,
-             where element [0,0] is the number of Local Join Counts, ...
+        LJC       :   numpy array
+                      array containing the univariate Local Join Counts (LJC).
+        p_sim       :   numpy array
+                        array containing the simulated p-values for each unit.
+        
         """
 
         self.connectivity = connectivity
@@ -43,28 +45,27 @@ class Local_Join_Count(BaseEstimator):
         y = np.asarray(y).flatten()
         
         w = self.connectivity
-        # Binary weights are needed for this statistic
-        w.transformation = 'b'
+        # Fill the diagonal with 0s
+        w = weights.util.fill_diagonal(w, val=0)
+        w.transform = 'b'
         
         self.y = y
         self.n = len(y)
         self.w = w
         
-        self.BB = self._statistic(y, w)
+        self.LJC = self._statistic(y, w)
         
         if permutations:
             self._crand()
             sim = np.transpose(self.rjoins)
-            above = sim >= self.BB
+            above = sim >= self.LJC
             larger = above.sum(0)
             low_extreme = (self.permutations - larger) < larger
             larger[low_extreme] = self.permutations - larger[low_extreme]
-            # 1 - simulated p-value? or just the simulated p-value?
-            # values of 0.001 seem to be NA or error?
             self.p_sim = (larger + 1.0) / (permutations + 1.0)
-
-        # Need the >>> return self to get the associated .BB attribute
-        # (significance in future, i.e. self.reference_distribution_ in lee.py)
+            # Set p-values for those with LJC of 0 to NaN
+            self.p_sim[self.LJC==0] = 'NaN'
+        
         return self
 
     @staticmethod
@@ -75,13 +76,13 @@ class Local_Join_Count(BaseEstimator):
         zseries = pd.Series(y, index=w.id_order)
         focal = zseries.loc[adj_list.focal].values
         neighbor = zseries.loc[adj_list.neighbor].values
-        BB = (focal == 1) & (neighbor == 1)
-        adj_list_BB = pd.DataFrame(adj_list.focal.values,
-                                   BB.astype('uint8')).reset_index()
-        adj_list_BB.columns = ['BB', 'ID']
-        adj_list_BB = adj_list_BB.groupby(by='ID').sum()
-        BB = adj_list_BB.BB.values
-        return (BB)
+        LJC = (focal == 1) & (neighbor == 1)
+        adj_list_LJC = pd.DataFrame(adj_list.focal.values,
+                                   LJC.astype('uint8')).reset_index()
+        adj_list_LJC.columns = ['LJC', 'ID']
+        adj_list_LJC = adj_list_LJC.groupby(by='ID').sum()
+        LJC = adj_list_LJC.LJC.values
+        return (LJC)
     
     def _crand(self):
         """
@@ -96,8 +97,6 @@ class Local_Join_Count(BaseEstimator):
         neighbors to i in each randomization.
 
         """
-        # converted z to y
-        # renamed lisas to joins
         y = self.y
         n = len(y)
         joins = np.zeros((self.n, self.permutations))
