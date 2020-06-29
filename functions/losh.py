@@ -3,7 +3,7 @@ import warnings
 from scipy import sparse
 from scipy import stats
 from sklearn.base import BaseEstimator
-import pysal.lib as lp
+from libpysal import weights
 
 
 class losh(BaseEstimator):
@@ -26,11 +26,11 @@ class losh(BaseEstimator):
         ----------
         Hi: numpy array
             Array of LOSH values for each spatial unit.    
-        ylag: array
+        ylag: numpy array
               Spatially lagged y values.
-        yresid: array
+        yresid: numpy array
                 Spatially lagged residual values.
-        VarHi: array
+        VarHi: numpy array
                Variance of Hi.
         pval: numpy array
               P-values for inference based on either "chi-square", 
@@ -85,11 +85,11 @@ class losh(BaseEstimator):
             a = 2
         else:
             a = a
-                
+         
         rowsum = np.array(w.sparse.sum(axis=1)).flatten()
         
         # Calculate spatial mean
-        ylag = lp.weights.lag_spatial(w, y)/rowsum
+        ylag = weights.lag_spatial(w, y)/rowsum
         # Calculate and adjust residuals based on multiplier
         yresid = abs(y-ylag)**a
         # Calculate denominator of Hi calculation 
@@ -97,7 +97,7 @@ class losh(BaseEstimator):
         denom =  np.mean(yresid) * np.array(rowsum)
         # Carry out final $H_{i}$ calculation by dividing
         # spatial average of residuals by denom
-        Hi = lp.weights.lag_spatial(w, yresid) / denom
+        Hi = weights.lag_spatial(w, yresid) / denom
         
         # Calculate variance
         n = len(y)

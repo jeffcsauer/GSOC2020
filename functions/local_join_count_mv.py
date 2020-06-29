@@ -138,7 +138,6 @@ class Local_Join_Count_MV(BaseEstimator):
         for i in range(self.w.n):
             idsi = ids[ids != i]
             np.random.shuffle(idsi)
-            # Mirroring moran_local_bv()
             tmp = ext[idsi[rids[:, 0:wc[i]]]]
             joins[i] = ext[i] * (w[i] * tmp).sum(1)
         self.rjoins = joins
