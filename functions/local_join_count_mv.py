@@ -119,10 +119,7 @@ class Local_Join_Count_MV(BaseEstimator):
         neighbors to i in each randomization.
 
         """
-        # converted y to z
-        # renamed lisas to joins
         ext = self.ext
-        # Get length based on first variable
         n = len(ext)
         joins = np.zeros((self.n, self.permutations))
         n_1 = self.n - 1
