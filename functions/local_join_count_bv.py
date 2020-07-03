@@ -5,26 +5,31 @@ from scipy import sparse
 from sklearn.base import BaseEstimator
 from libpysal import weights
 
+
 PERMUTATIONS = 999
+
 
 class Local_Join_Count_BV(BaseEstimator):
 
-    """Bivariate local join counts"""
+    """Univariate Local Join Count Statistic"""
 
     def __init__(self, connectivity=None, permutations=PERMUTATIONS):
         """
         Initialize a Local_Join_Count_BV estimator
         Arguments
         ---------
-        connectivity:   scipy.sparse matrix object
-                        the connectivity structure describing the relationships
-                        between observed units. Will be row-standardized.
+        connectivity     : scipy.sparse matrix object
+                           the connectivity structure describing
+                           the relationships between observed units.
+                           Need not be row-standardized.
         Attributes
         ----------
-        LJC       :   numpy.ndarray
-                      array containing the estimated Bivariate Local Join Counts
-        p_sim       :   numpy.ndarray
-                        array containing the simulated p-values for each unit.
+        LJC              : numpy.ndarray
+                           array containing the estimated
+                           Bivariate Local Join Counts
+        p_sim            : numpy.ndarray
+                           array containing the simulated
+                           p-values for each unit.
         """
 
         self.connectivity = connectivity
@@ -34,16 +39,54 @@ class Local_Join_Count_BV(BaseEstimator):
         """
         Arguments
         ---------
-        x       :   numpy.ndarray
-                    array containing binary (0/1) data
-        y       :   numpy.ndarray
-                    array containing binary (0/1) data
+        x                : numpy.ndarray
+                           array containing binary (0/1) data
+        z                : numpy.ndarray
+                           array containing binary (0/1) data
         Returns
         -------
         the fitted estimator.
+
         Notes
         -----
         Technical details and derivations can be found in :cite:`AnselinLi2019`.
+
+        Examples
+        --------
+        >>> import libpysal
+        >>> w = libpysal.weights.lat2W(4, 4)
+        >>> x = np.ones(16)
+        >>> x[0:8] = 0
+        >>> z = [0,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1]
+        >>> LJC_BV_C1 = Local_Join_Count_BV(connectivity=w).fit(x, z, case="BJC")
+        >>> LJC_BV_C2 = Local_Join_Count_BV(connectivity=w).fit(x, z, case="CLC")
+        >>> LJC_BV_C1.LJC
+        >>> LJC_BV_C1.p_sim
+        >>> LJC_BV_C2.LJC
+        >>> LJC_BV_C2.p_sim
+
+        Commpop data replicating GeoDa tutorial (Case 1)
+        >>> import libpysal
+        >>> import geopandas as gpd
+        >>> commpop = gpd.read_file("https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/commpop.gpkg")
+        >>> w = libpysal.weights.Queen.from_dataframe(commpop)
+        >>> LJC_BV_Case1 = Local_Join_Count_BV(connectivity=w).fit(commpop['popneg'], commpop['popplus'], case='BJC')
+        >>> LJC_BV_Case1.LJC
+        >>> LJC_BV_Case1.p_sim
+
+        Guerry data replicating GeoDa tutorial (Case 2)
+        >>> import geopandas as gpd
+        >>> import libpysal
+        >>> guerry = gpd.read_file('https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/guerry/guerry_geodavalues.gpkg')
+        >>> guerry['infq5'] = 0
+        >>> guerry['donq5'] = 0
+        >>> guerry.loc[(guerry['Infants'] > 23574), 'infq5'] = 1
+        >>> guerry.loc[(guerry['Donatns'] > 10973), 'donq5'] = 1
+        >>> w = libpysal.weights.Queen.from_dataframe(guerry)
+        >>> LJC_BV_Case2 = Local_Join_Count_BV(connectivity=w).fit(guerry['infq5'], guerry['donq5'], case='CLC')
+        >>> LJC_BV_Case2.LJC
+        >>> LJC_BV_Case2.p_sim
+
         """
         x = np.asarray(x).flatten()
         z = np.asarray(z).flatten()
@@ -70,7 +113,7 @@ class Local_Join_Count_BV(BaseEstimator):
             larger[low_extreme] = self.permutations - larger[low_extreme]
             self.p_sim = (larger + 1.0) / (permutations + 1.0)
             # Set p-values for those with LJC of 0 to NaN
-            self.p_sim[self.LJC==0] = 'NaN'
+            self.p_sim[self.LJC == 0] = 'NaN'
 
         return self
 
@@ -110,8 +153,9 @@ class Local_Join_Count_BV(BaseEstimator):
             adj_list_CLC = adj_list_CLC.groupby(by='ID').sum()
             return (adj_list_CLC.CLC.values)
         else:
-            raise NotImplementedError(f'The requested LJC method ({case}) is not currently supported!')
-            
+            raise NotImplementedError(f'The requested LJC method ({case}) \
+            is not currently supported!')
+
     def _crand(self):
         """
         conditional randomization
@@ -127,9 +171,8 @@ class Local_Join_Count_BV(BaseEstimator):
         """
         x = self.x
         z = self.z
-        xz = ((x==1) & (z==0)).astype('uint8')
         case = self.case
-        
+
         n = len(x)
         joins = np.zeros((self.n, self.permutations))
         n_1 = self.n - 1
@@ -147,11 +190,11 @@ class Local_Join_Count_BV(BaseEstimator):
             np.random.shuffle(idsi)
             tmp_x = x[idsi[rids[:, 0:wc[i]]]]
             tmp_z = z[idsi[rids[:, 0:wc[i]]]]
-            tmp_xz = xz[idsi[rids[:, 0:wc[i]]]]
             if case == "BJC":
-                joins[i] = z[i] * (w[i] * tmp_xz).sum(1)
+                joins[i] = x[i] * (w[i] * tmp_z).sum(1)
             elif case == "CLC":
                 joins[i] = z[i] * (w[i] * tmp_z * tmp_x).sum(1)
             else:
-                raise NotImplementedError(f'The requested LJC method ({case}) is not currently supported!')
+                raise NotImplementedError(f'The requested LJC method \
+                ({case}) is not currently supported!')
         self.rjoins = joins

@@ -4,26 +4,30 @@ from scipy import sparse
 from sklearn.base import BaseEstimator
 from libpysal import weights
 
+
 PERMUTATIONS = 999
+
 
 class Local_Join_Count_MV(BaseEstimator):
 
-    """Multivariate local join counts"""
+    """Multivariate Local Join Count Statistic"""
 
     def __init__(self, connectivity=None, permutations=PERMUTATIONS):
         """
         Initialize a Local_Join_Count_MV estimator
         Arguments
         ---------
-        connectivity:   scipy.sparse matrix object
-                        the connectivity structure describing the relationships
-                        between observed units. Will be row-standardized.
+        connectivity     : scipy.sparse matrix object
+                           the connectivity structure describing
+                           the relationships between observed units.
+                           Need not be row-standardized.
         Attributes
         ----------
-        LJC       :   numpy.ndarray
-                      array containing the estimated Multivariate Local Join Counts.
-        p_sim       :   numpy.ndarray
-                        array containing the simulated p-values for each unit.
+        LJC              : numpy.ndarray
+                           array containing the estimated
+                           Multivariate Local Join Counts
+        p_sim            : numpy.ndarray
+                           array containing the simulated p-values for each unit.
         """
 
         self.connectivity = connectivity
@@ -33,30 +37,58 @@ class Local_Join_Count_MV(BaseEstimator):
         """
         Arguments
         ---------
-        variables     :   numpy.ndarray
-                          array(s) containing binary (0/1) data
+        variables     : numpy.ndarray
+                        array(s) containing binary (0/1) data
         Returns
         -------
         the fitted estimator.
+
         Notes
         -----
         Technical details and derivations can be found in :cite:`AnselinLi2019`.
+
+        Examples
+        --------
+        >>> import libpysal
+        >>> w = libpysal.weights.lat2W(4, 4)
+        >>> x = np.ones(16)
+        >>> x[0:8] = 0
+        >>> z = [0,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1]
+        >>> y = [0,1,1,1,1,1,1,1,0,0,0,1,0,0,1,1]
+        >>> LJC_MV = Local_Join_Count_MV(connectivity=w).fit([x, y, z])
+        >>> LJC_MV.LJC
+        >>> LJC_MV.p_sim
+        
+        Guerry data extending GeoDa tutorial
+        >>> import geopandas as gpd
+        >>> import libpysal
+        >>> guerry = gpd.read_file('https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/guerry/guerry_geodavalues.gpkg')
+        >>> guerry['infq5'] = 0
+        >>> guerry['donq5'] = 0
+        >>> guerry['suic5'] = 0
+        >>> guerry.loc[(guerry['Infants'] > 23574), 'infq5'] = 1
+        >>> guerry.loc[(guerry['Donatns'] > 10973), 'donq5'] = 1
+        >>> guerry.loc[(guerry['Suicids'] > 55564), 'suic5'] = 1
+        >>> w = libpysal.weights.Queen.from_dataframe(guerry)
+        >>> LJC_MV = Local_Join_Count_MV(connectivity=w).fit([guerry['infq5'], guerry['donq5'], guerry['suic5']])
+        >>> LJC_MV.LJC
+        >>> LJC_MV.p_sim
         """
 
         w = self.connectivity
         # Fill the diagonal with 0s
         w = weights.util.fill_diagonal(w, val=0)
         w.transform = 'b'
-        
+
         self.n = len(variables[0])
         self.w = w
-        
+
         self.variables = variables
-        
+
         self.ext = np.prod(np.vstack(variables), axis=0)
 
         self.LJC = self._statistic(variables, w)
-        
+
         if permutations:
             self._crand()
             sim = np.transpose(self.rjoins)
@@ -66,7 +98,7 @@ class Local_Join_Count_MV(BaseEstimator):
             larger[low_extreme] = self.permutations - larger[low_extreme]
             self.p_sim = (larger + 1.0) / (permutations + 1.0)
             # Set p-values for those with LJC of 0 to NaN
-            self.p_sim[self.LJC==0] = 'NaN'
+            self.p_sim[self.LJC == 0] = 'NaN'
 
         return self
 
@@ -85,17 +117,17 @@ class Local_Join_Count_MV(BaseEstimator):
         neighbor = [zseries[i].loc[adj_list.neighbor].values for
                     i in range(len(variables))]
 
-        # Find instances where all surrounding 
+        # Find instances where all surrounding
         # focal and neighbor values == 1
-        focal_all = np.array(np.all(np.dstack(focal)==1, 
+        focal_all = np.array(np.all(np.dstack(focal) == 1,
                                     axis=2))
-        neighbor_all = np.array(np.all(np.dstack(neighbor)==1, 
+        neighbor_all = np.array(np.all(np.dstack(neighbor) == 1,
                                        axis=2))
         MCLC = (focal_all == True) & (neighbor_all == True)
         # Convert list of True/False to boolean array 
         # and unlist (necessary for building pd.DF)
         MCLC = list(MCLC*1)
-        
+
         # Create a df that uses the adjacency list
         # focal values and the BBs counts
         adj_list_MCLC = pd.DataFrame(adj_list.focal.values,
@@ -105,7 +137,7 @@ class Local_Join_Count_MV(BaseEstimator):
         adj_list_MCLC = adj_list_MCLC.groupby(by='ID').sum()
 
         return (adj_list_MCLC.MCLC.values)
-            
+
     def _crand(self):
         """
         conditional randomization
@@ -119,7 +151,10 @@ class Local_Join_Count_MV(BaseEstimator):
         neighbors to i in each randomization.
 
         """
+        # converted y to z
+        # renamed lisas to joins
         ext = self.ext
+        # Get length based on first variable
         n = len(ext)
         joins = np.zeros((self.n, self.permutations))
         n_1 = self.n - 1
@@ -135,6 +170,7 @@ class Local_Join_Count_MV(BaseEstimator):
         for i in range(self.w.n):
             idsi = ids[ids != i]
             np.random.shuffle(idsi)
+            # Mirroring moran_local_bv()
             tmp = ext[idsi[rids[:, 0:wc[i]]]]
             joins[i] = ext[i] * (w[i] * tmp).sum(1)
         self.rjoins = joins

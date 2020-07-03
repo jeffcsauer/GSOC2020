@@ -3,7 +3,9 @@ import pandas as pd
 from sklearn.base import BaseEstimator
 from libpysal import weights
 
+
 PERMUTATIONS = 999
+
 
 class Local_Join_Count(BaseEstimator):
 
@@ -14,16 +16,19 @@ class Local_Join_Count(BaseEstimator):
         Initialize a Local_Join_Count estimator
         Arguments
         ---------
-        connectivity:   scipy.sparse matrix object
-                        the connectivity structure describing the relationships
-                        between observed units. Need not be row-standardized.
+        connectivity     : scipy.sparse matrix object
+                           the connectivity structure describing
+                           the relationships between observed units.
+                           Need not be row-standardized.
         Attributes
         ----------
-        LJC       :   numpy array
-                      array containing the univariate Local Join Counts (LJC).
-        p_sim       :   numpy array
-                        array containing the simulated p-values for each unit.
-        
+        LJC             : numpy array
+                          array containing the univariate
+                          Local Join Count (LJC).
+        p_sim           : numpy array
+                          array containing the simulated
+                          p-values for each unit.
+
         """
 
         self.connectivity = connectivity
@@ -33,28 +38,50 @@ class Local_Join_Count(BaseEstimator):
         """
         Arguments
         ---------
-        y       :   numpy.ndarray
-                    array containing binary (0/1) data
+        y               : numpy.ndarray
+                          array containing binary (0/1) data
         Returns
         -------
         the fitted estimator.
+
         Notes
         -----
         Technical details and derivations found in :cite:`AnselinLi2019`.
+
+        Examples
+        --------
+        >>> import libpysal
+        >>> w = libpysal.weights.lat2W(4, 4)
+        >>> y = np.ones(16)
+        >>> y[0:8] = 0
+        >>> LJC_uni = Local_Join_Count(connectivity=w).fit(y)
+        >>> LJC_uni.LJC
+        >>> LJC_uni.p_sim
+
+        Guerry data replicating GeoDa tutorial
+        >>> import geopandas as gpd
+        >>> import libpysal
+        >>> guerry = gpd.read_file('https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/guerry/guerry_geodavalues.gpkg')
+        >>> guerry['SELECTED'] = 0
+        >>> guerry.loc[(guerry['Donatns'] > 10997), 'SELECTED'] = 1
+        >>> w = libpysal.weights.Queen.from_dataframe(guerry)
+        >>> LJC_uni = Local_Join_Count(connectivity=w).fit(guerry['SELECTED'])
+        >>> LJC_uni.LJC
+        >>> LJC_uni.p_sim
         """
         y = np.asarray(y).flatten()
-        
+
         w = self.connectivity
         # Fill the diagonal with 0s
         w = weights.util.fill_diagonal(w, val=0)
         w.transform = 'b'
-        
+
         self.y = y
         self.n = len(y)
         self.w = w
-        
+
         self.LJC = self._statistic(y, w)
-        
+
         if permutations:
             self._crand()
             sim = np.transpose(self.rjoins)
@@ -64,8 +91,8 @@ class Local_Join_Count(BaseEstimator):
             larger[low_extreme] = self.permutations - larger[low_extreme]
             self.p_sim = (larger + 1.0) / (permutations + 1.0)
             # Set p-values for those with LJC of 0 to NaN
-            self.p_sim[self.LJC==0] = 'NaN'
-        
+            self.p_sim[self.LJC == 0] = 'NaN'
+
         return self
 
     @staticmethod
@@ -78,12 +105,12 @@ class Local_Join_Count(BaseEstimator):
         neighbor = zseries.loc[adj_list.neighbor].values
         LJC = (focal == 1) & (neighbor == 1)
         adj_list_LJC = pd.DataFrame(adj_list.focal.values,
-                                   LJC.astype('uint8')).reset_index()
+                                    LJC.astype('uint8')).reset_index()
         adj_list_LJC.columns = ['LJC', 'ID']
         adj_list_LJC = adj_list_LJC.groupby(by='ID').sum()
         LJC = adj_list_LJC.LJC.values
         return (LJC)
-    
+
     def _crand(self):
         """
         conditional randomization
