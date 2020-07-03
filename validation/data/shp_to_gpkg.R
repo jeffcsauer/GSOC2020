@@ -4,3 +4,8 @@ temp <- st_read("C:/Users/jeffe/Dropbox/GSOC2020/validation/data/baltimore/balti
 outname <- "C:/Users/jeffe/Dropbox/GSOC2020/validation/data/commpop.gpkg"
 temp_sp <- as_Spatial(temp)
 writeOGR(temp_sp, dsn = outname, layer = "commpop", driver = "GPKG")
+
+
+library(spdep)
+data(boston, package="spData")
+resLOSH <- spdep::LOSH(boston.c$NOX, nb2listw(boston.soi))
