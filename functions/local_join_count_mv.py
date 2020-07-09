@@ -4,7 +4,6 @@ from scipy import sparse
 from sklearn.base import BaseEstimator
 from libpysal import weights
 
-from ..local_join_count_mv import Local_Join_Count_MV
 
 PERMUTATIONS = 999
 

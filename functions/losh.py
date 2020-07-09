@@ -3,7 +3,7 @@ import warnings
 from scipy import sparse
 from scipy import stats
 from sklearn.base import BaseEstimator
-import pysal.lib as lp
+import libpysal as lp
 
 
 class losh(BaseEstimator):
