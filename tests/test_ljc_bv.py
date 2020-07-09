@@ -4,6 +4,8 @@ import numpy as np
 from libpysal.weights.util import lat2W
 from libpysal.common import pandas
 
+from ..local_join_count_bv import Local_Join_Count_BV
+
 PANDAS_EXTINCT = pandas is None
 
 class Local_Join_Counts_BV_Tester(unittest.TestCase):
@@ -22,5 +24,15 @@ class Local_Join_Counts_BV_Tester(unittest.TestCase):
             self.assertAlmostEqual(ljc_bv_case1.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0])
             self.assertAlmostEqual(ljc_bv_case2.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 2, 2])
             
-            
 
+suite = unittest.TestSuite()
+test_classes = [
+    Local_Join_Counts_BV_Tester
+]
+for i in test_classes:
+    a = unittest.TestLoader().loadTestsFromTestCase(i)
+    suite.addTest(a)
+
+if __name__ == "__main__":
+    runner = unittest.TextTestRunner()
+    runner.run(suite)

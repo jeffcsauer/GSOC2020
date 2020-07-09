@@ -6,6 +6,7 @@ from esda import losh
 import numpy as np
 
 PANDAS_EXTINCT = pandas is None
+SEED = 12345
 
 class Losh_Tester(unittest.TestCase):
     def setUp(self):
@@ -17,4 +18,17 @@ class Losh_Tester(unittest.TestCase):
     def test_losh(self):
         ls = losh(connectivity=self.w, inference="chi-square").fit(self.y)
         self.assertAlmostEqual(ls.Hi[0], 0.77613471)
-        self.assertAlmostEqual(ls.pval[0],  0.22802201)
+        self.assertAlmostEqual(ls.pval[0], 0.22802201)
+        
+suite = unittest.TestSuite()
+test_classes = [
+    Losh_Tester
+]
+for i in test_classes:
+    a = unittest.TestLoader().loadTestsFromTestCase(i)
+    suite.addTest(a)
+
+if __name__ == "__main__":
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
+

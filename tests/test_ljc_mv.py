@@ -21,3 +21,15 @@ class Local_Join_Counts_MV_Tester(unittest.TestCase):
             np.random.seed(12345)
             ljc_mv = Local_Join_Count_MV(connectivity=self.w).fit([self.x, self.y, self.z])
             self.assertAlmostEqual(ljc_mv.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 2])
+            
+suite = unittest.TestSuite()
+test_classes = [
+    Local_Join_Counts_MV_Tester
+]
+for i in test_classes:
+    a = unittest.TestLoader().loadTestsFromTestCase(i)
+    suite.addTest(a)
+
+if __name__ == "__main__":
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
