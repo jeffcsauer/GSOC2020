@@ -19,7 +19,7 @@ class Local_Join_Counts_Tester(unittest.TestCase):
             """Test method"""
             np.random.seed(12345)
             ljc = Local_Join_Count(connectivity=self.w).fit(self.y)
-            self.assertAlmostEqual(ljc.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 2, 2, 3, 3, 2])
+            assert np.array_equal(ljc.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 2, 2, 3, 3, 2])
             
             
 suite = unittest.TestSuite()
