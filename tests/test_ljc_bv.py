@@ -21,8 +21,8 @@ class Local_Join_Counts_BV_Tester(unittest.TestCase):
             np.random.seed(12345)
             ljc_bv_case1 = Local_Join_Count_BV(connectivity=self.w).fit(self.x, self.z, case="BJC")
             ljc_bv_case2 = Local_Join_Count_BV(connectivity=self.w).fit(self.x, self.z, case="CLC")
-            self.assertAlmostEqual(ljc_bv_case1.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0])
-            self.assertAlmostEqual(ljc_bv_case2.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 2, 2])
+            assert np.array_equal(ljc_bv_case1.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0])
+            assert np.array_equal(ljc_bv_case2.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 2, 2])
             
 
 suite = unittest.TestSuite()

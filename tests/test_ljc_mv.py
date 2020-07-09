@@ -22,7 +22,7 @@ class Local_Join_Counts_MV_Tester(unittest.TestCase):
             """Test method"""
             np.random.seed(12345)
             ljc_mv = Local_Join_Count_MV(connectivity=self.w).fit([self.x, self.y, self.z])
-            self.assertAlmostEqual(ljc_mv.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 2])
+            assert np.array_equal(ljc_mv.LJC, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 2])
             
 suite = unittest.TestSuite()
 test_classes = [
