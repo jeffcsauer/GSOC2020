@@ -6,7 +6,8 @@ from esda import losh
 import numpy as np
 
 PANDAS_EXTINCT = pandas is None
-SEED = 12345
+
+from ..losh import losh
 
 class Losh_Tester(unittest.TestCase):
     def setUp(self):

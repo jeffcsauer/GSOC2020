@@ -4,6 +4,8 @@ import numpy as np
 from libpysal.weights.util import lat2W
 from libpysal.common import pandas
 
+from ..local_join_count_mv import Local_Join_Count_MV
+
 PANDAS_EXTINCT = pandas is None
 
 class Local_Join_Counts_MV_Tester(unittest.TestCase):
