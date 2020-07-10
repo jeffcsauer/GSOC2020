@@ -69,12 +69,13 @@ class losh(BaseEstimator):
         >>> ls = losh(connectivity=w, inference="chi-square").fit(y)
         >>> np.round(ls.Hi[0], 3)
         >>> np.round(ls.pval[0], 3)
-        
+
         Boston housing data replicating R spdep::LOSH()
-        >>> import geopandas as gpd
         >>> import libpysal
-        >>> boston = gpd.read_file('https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/boston/boston.gpkg')
-        >>> w = libpysal.io.open('https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/boston/spdep_boston.gal').read()
+        >>> import geopandas as gpd
+        >>> boston = libpysal.examples.load_example('Bostonhsg')
+        >>> boston_ds = gpd.read_file(boston.get_path('boston.shp'))
+        >>> w = libpysal.weights.Queen.from_dataframe(boston_ds)
         >>> ls = losh(connectivity=w, inference="chi-square").fit(boston['NOX'])
         >>> np.round(ls.Hi[0], 3)
         >>> np.round(ls.VarHi[0], 3)

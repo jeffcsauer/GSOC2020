@@ -75,18 +75,18 @@ class Local_Join_Count_BV(BaseEstimator):
         >>> LJC_BV_Case1.p_sim
 
         Guerry data replicating GeoDa tutorial (Case 2)
-        >>> import geopandas as gpd
         >>> import libpysal
-        >>> guerry = gpd.read_file('https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/guerry/guerry_geodavalues.gpkg')
-        >>> guerry['infq5'] = 0
-        >>> guerry['donq5'] = 0
-        >>> guerry.loc[(guerry['Infants'] > 23574), 'infq5'] = 1
-        >>> guerry.loc[(guerry['Donatns'] > 10973), 'donq5'] = 1
-        >>> w = libpysal.weights.Queen.from_dataframe(guerry)
-        >>> LJC_BV_Case2 = Local_Join_Count_BV(connectivity=w).fit(guerry['infq5'], guerry['donq5'], case='CLC')
+        >>> import geopandas as gpd
+        >>> guerry = libpysal.examples.load_example('Guerry')
+        >>> guerry_ds = gpd.read_file(guerry.get_path('Guerry.shp'))
+        >>> guerry_ds['infq5'] = 0
+        >>> guerry_ds['donq5'] = 0
+        >>> guerry_ds.loc[(guerry['Infants'] > 23574), 'infq5'] = 1
+        >>> guerry_ds.loc[(guerry['Donatns'] > 10973), 'donq5'] = 1
+        >>> w = libpysal.weights.Queen.from_dataframe(guerry_ds)
+        >>> LJC_BV_Case2 = Local_Join_Count_BV(connectivity=w).fit(guerry_ds['infq5'], guerry_ds['donq5'], case='CLC')
         >>> LJC_BV_Case2.LJC
         >>> LJC_BV_Case2.p_sim
-
         """
         x = np.asarray(x).flatten()
         z = np.asarray(z).flatten()

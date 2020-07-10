@@ -59,13 +59,14 @@ class Local_Join_Count(BaseEstimator):
         >>> LJC_uni.p_sim
 
         Guerry data replicating GeoDa tutorial
-        >>> import geopandas as gpd
         >>> import libpysal
-        >>> guerry = gpd.read_file('https://github.com/jeffcsauer/GSOC2020/raw/master/validation/data/guerry/guerry_geodavalues.gpkg')
-        >>> guerry['SELECTED'] = 0
-        >>> guerry.loc[(guerry['Donatns'] > 10997), 'SELECTED'] = 1
-        >>> w = libpysal.weights.Queen.from_dataframe(guerry)
-        >>> LJC_uni = Local_Join_Count(connectivity=w).fit(guerry['SELECTED'])
+        >>> import geopandas as gpd
+        >>> guerry = libpysal.examples.load_example('Guerry')
+        >>> guerry_ds = gpd.read_file(guerry.get_path('Guerry.shp'))
+        >>> guerry_ds['SELECTED'] = 0
+        >>> guerry_ds.loc[(guerry_ds['Donatns'] > 10997), 'SELECTED'] = 1
+        >>> w = libpysal.weights.Queen.from_dataframe(guerry_ds)
+        >>> LJC_uni = Local_Join_Count(connectivity=w).fit(guerry_ds['SELECTED'])
         >>> LJC_uni.LJC
         >>> LJC_uni.p_sim
         """
