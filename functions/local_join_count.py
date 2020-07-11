@@ -2,6 +2,11 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
 from libpysal import weights
+from esda.crand import (
+    crand as _crand_plus,
+    njit as _njit,
+    _prepare_univariate
+)
 
 
 PERMUTATIONS = 999
@@ -11,7 +16,8 @@ class Local_Join_Count(BaseEstimator):
 
     """Univariate Local Join Count Statistic"""
 
-    def __init__(self, connectivity=None, permutations=PERMUTATIONS):
+    def __init__(self, connectivity=None, permutations=PERMUTATIONS, n_jobs=1, 
+                 keep_simulations=True, seed=None):
         """
         Initialize a Local_Join_Count estimator
         Arguments
@@ -20,6 +26,23 @@ class Local_Join_Count(BaseEstimator):
                            the connectivity structure describing
                            the relationships between observed units.
                            Need not be row-standardized.
+        permutations     : int
+                           number of random permutations for calculation of pseudo
+                           p_values
+        n_jobs           : int
+                           Number of cores to be used in the conditional randomisation. If -1,
+                           all available cores are used.    
+        keep_simulations : Boolean
+                           (default=True)
+                           If True, the entire matrix of replications under the null 
+                           is stored in memory and accessible; otherwise, replications 
+                           are not saved
+        seed             : None/int
+                           Seed to ensure reproducibility of conditional randomizations. 
+                           Must be set here, and not outside of the function, since numba 
+                           does not correctly interpret external seeds 
+                           nor numpy.random.RandomState instances.              
+                           
         Attributes
         ----------
         LJC             : numpy array
@@ -33,6 +56,9 @@ class Local_Join_Count(BaseEstimator):
 
         self.connectivity = connectivity
         self.permutations = permutations
+        self.n_jobs = n_jobs
+        self.keep_simulations = keep_simulations
+        self.seed = seed
 
     def fit(self, y, permutations=999):
         """
@@ -76,6 +102,10 @@ class Local_Join_Count(BaseEstimator):
         # Fill the diagonal with 0s
         w = weights.util.fill_diagonal(w, val=0)
         w.transform = 'b'
+        
+        keep_simulations = self.keep_simulations
+        n_jobs = self.n_jobs
+        seed = self.seed
 
         self.y = y
         self.n = len(y)
@@ -84,16 +114,22 @@ class Local_Join_Count(BaseEstimator):
         self.LJC = self._statistic(y, w)
 
         if permutations:
-            self._crand()
-            sim = np.transpose(self.rjoins)
-            above = sim >= self.LJC
-            larger = above.sum(0)
-            low_extreme = (self.permutations - larger) < larger
-            larger[low_extreme] = self.permutations - larger[low_extreme]
-            self.p_sim = (larger + 1.0) / (permutations + 1.0)
+            self.p_sim, self.rjoins = _crand_plus(
+                z=self.y, 
+                w=self.w, 
+                observed=self.LJC,
+                permutations=permutations, 
+                keep=True, 
+                n_jobs=1,
+                stat_func=_ljc_uni
+            )
             # Set p-values for those with LJC of 0 to NaN
             self.p_sim[self.LJC == 0] = 'NaN'
-
+        
+        del (self.n, self.keep_simulations, self.n_jobs, 
+             self.permutations, self.seed, self.w, self.y,
+             self.connectivity, self.rjoins)
+        
         return self
 
     @staticmethod
@@ -109,38 +145,14 @@ class Local_Join_Count(BaseEstimator):
                                     LJC.astype('uint8')).reset_index()
         adj_list_LJC.columns = ['LJC', 'ID']
         adj_list_LJC = adj_list_LJC.groupby(by='ID').sum()
-        LJC = adj_list_LJC.LJC.values
+        LJC = np.array(adj_list_LJC.LJC.values, dtype='float')
         return (LJC)
 
-    def _crand(self):
-        """
-        conditional randomization
+# --------------------------------------------------------------
+# Conditional Randomization Function Implementations
+# --------------------------------------------------------------
 
-        for observation i with ni neighbors,  the candidate set cannot include
-        i (we don't want i being a neighbor of i). we have to sample without
-        replacement from a set of ids that doesn't include i. numpy doesn't
-        directly support sampling wo replacement and it is expensive to
-        implement this. instead we omit i from the original ids,  permute the
-        ids and take the first ni elements of the permuted ids as the
-        neighbors to i in each randomization.
-
-        """
-        y = self.y
-        n = len(y)
-        joins = np.zeros((self.n, self.permutations))
-        n_1 = self.n - 1
-        prange = list(range(self.permutations))
-        k = self.w.max_neighbors + 1
-        nn = self.n - 1
-        rids = np.array([np.random.permutation(nn)[0:k] for i in prange])
-        ids = np.arange(self.w.n)
-        ido = self.w.id_order
-        w = [self.w.weights[ido[i]] for i in ids]
-        wc = [self.w.cardinalities[ido[i]] for i in ids]
-
-        for i in range(self.w.n):
-            idsi = ids[ids != i]
-            np.random.shuffle(idsi)
-            tmp = y[idsi[rids[:, 0:wc[i]]]]
-            joins[i] = y[i] * (w[i] * tmp).sum(1)
-        self.rjoins = joins
+@_njit(fastmath=True)
+def _ljc_uni(i, z, permuted_ids, weights_i, scaling):
+    zi, zrand = _prepare_univariate(i, z, permuted_ids, weights_i)
+    return zi * (zrand @ weights_i)

@@ -3,6 +3,11 @@ import pandas as pd
 from scipy import sparse
 from sklearn.base import BaseEstimator
 from libpysal import weights
+from esda.crand import (
+    crand as _crand_plus,
+    njit as _njit,
+    _prepare_univariate
+)
 
 
 PERMUTATIONS = 999
@@ -12,7 +17,8 @@ class Local_Join_Count_MV(BaseEstimator):
 
     """Multivariate Local Join Count Statistic"""
 
-    def __init__(self, connectivity=None, permutations=PERMUTATIONS):
+    def __init__(self, connectivity=None, permutations=PERMUTATIONS, n_jobs=1, 
+                 keep_simulations=True, seed=None):
         """
         Initialize a Local_Join_Count_MV estimator
         Arguments
@@ -21,17 +27,30 @@ class Local_Join_Count_MV(BaseEstimator):
                            the connectivity structure describing
                            the relationships between observed units.
                            Need not be row-standardized.
-        Attributes
-        ----------
-        LJC              : numpy.ndarray
-                           array containing the estimated
-                           Multivariate Local Join Counts
-        p_sim            : numpy.ndarray
-                           array containing the simulated p-values for each unit.
+        permutations     : int
+                           number of random permutations for calculation of pseudo
+                           p_values
+        n_jobs           : int
+                           Number of cores to be used in the conditional randomisation. If -1,
+                           all available cores are used.    
+        keep_simulations : Boolean
+                           (default=True)
+                           If True, the entire matrix of replications under the null 
+                           is stored in memory and accessible; otherwise, replications 
+                           are not saved
+        seed             : None/int
+                           Seed to ensure reproducibility of conditional randomizations. 
+                           Must be set here, and not outside of the function, since numba 
+                           does not correctly interpret external seeds 
+                           nor numpy.random.RandomState instances.              
+                           
         """
 
         self.connectivity = connectivity
         self.permutations = permutations
+        self.n_jobs = n_jobs
+        self.keep_simulations = keep_simulations
+        self.seed = seed
 
     def fit(self, variables, permutations=999):
         """
@@ -85,21 +104,31 @@ class Local_Join_Count_MV(BaseEstimator):
         self.w = w
 
         self.variables = variables
+        
+        keep_simulations = self.keep_simulations
+        n_jobs = self.n_jobs
+        seed = self.seed
 
         self.ext = np.prod(np.vstack(variables), axis=0)
 
         self.LJC = self._statistic(variables, w)
 
         if permutations:
-            self._crand()
-            sim = np.transpose(self.rjoins)
-            above = sim >= self.LJC
-            larger = above.sum(0)
-            low_extreme = (self.permutations - larger) < larger
-            larger[low_extreme] = self.permutations - larger[low_extreme]
-            self.p_sim = (larger + 1.0) / (permutations + 1.0)
+            self.p_sim, self.rjoins = _crand_plus(
+                z=self.ext, 
+                w=self.w, 
+                observed=self.LJC,
+                permutations=permutations, 
+                keep=True, 
+                n_jobs=1,
+                stat_func=_ljc_mv
+            )
             # Set p-values for those with LJC of 0 to NaN
             self.p_sim[self.LJC == 0] = 'NaN'
+        
+        del (self.n, self.keep_simulations, self.n_jobs, 
+             self.permutations, self.seed, self.w, self.ext,
+             self.variables, self.connectivity, self.rjoins)
 
         return self
 
@@ -137,41 +166,13 @@ class Local_Join_Count_MV(BaseEstimator):
         adj_list_MCLC.columns = ['MCLC', 'ID']
         adj_list_MCLC = adj_list_MCLC.groupby(by='ID').sum()
 
-        return (adj_list_MCLC.MCLC.values)
+        return (np.array(adj_list_MCLC.MCLC.values, dtype='float'))
 
-    def _crand(self):
-        """
-        conditional randomization
+# --------------------------------------------------------------
+# Conditional Randomization Function Implementations
+# --------------------------------------------------------------
 
-        for observation i with ni neighbors,  the candidate set cannot include
-        i (we don't want i being a neighbor of i). we have to sample without
-        replacement from a set of ids that doesn't include i. numpy doesn't
-        directly support sampling wo replacement and it is expensive to
-        implement this. instead we omit i from the original ids,  permute the
-        ids and take the first ni elements of the permuted ids as the
-        neighbors to i in each randomization.
-
-        """
-        # converted y to z
-        # renamed lisas to joins
-        ext = self.ext
-        # Get length based on first variable
-        n = len(ext)
-        joins = np.zeros((self.n, self.permutations))
-        n_1 = self.n - 1
-        prange = list(range(self.permutations))
-        k = self.w.max_neighbors + 1
-        nn = self.n - 1
-        rids = np.array([np.random.permutation(nn)[0:k] for i in prange])
-        ids = np.arange(self.w.n)
-        ido = self.w.id_order
-        w = [self.w.weights[ido[i]] for i in ids]
-        wc = [self.w.cardinalities[ido[i]] for i in ids]
-
-        for i in range(self.w.n):
-            idsi = ids[ids != i]
-            np.random.shuffle(idsi)
-            # Mirroring moran_local_bv()
-            tmp = ext[idsi[rids[:, 0:wc[i]]]]
-            joins[i] = ext[i] * (w[i] * tmp).sum(1)
-        self.rjoins = joins
+@_njit(fastmath=True)
+def _ljc_mv(i, z, permuted_ids, weights_i, scaling):
+    zi, zrand = _prepare_univariate(i, z, permuted_ids, weights_i)
+    return zi * (zrand @ weights_i)
