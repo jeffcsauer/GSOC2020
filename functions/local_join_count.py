@@ -97,6 +97,10 @@ class Local_Join_Count(BaseEstimator):
         >>> LJC_uni.p_sim
         """
         y = np.asarray(y).flatten()
+        
+        # Need to ensure that the np.array() are of
+        # dtype='float' for numba
+        y = np.array(y, dtype='float')
 
         w = self.connectivity
         # Fill the diagonal with 0s

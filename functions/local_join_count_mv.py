@@ -1,3 +1,5 @@
+
+
 import numpy as np
 import pandas as pd
 from scipy import sparse
@@ -103,13 +105,16 @@ class Local_Join_Count_MV(BaseEstimator):
         self.n = len(variables[0])
         self.w = w
 
-        self.variables = variables
+        self.variables = np.array(variables, dtype='float')
         
         keep_simulations = self.keep_simulations
         n_jobs = self.n_jobs
         seed = self.seed
 
-        self.ext = np.prod(np.vstack(variables), axis=0)
+        # Need to ensure that the product is an 
+        # np.array() of dtype='float' for numba
+        self.ext = np.array(np.prod(np.vstack(variables), axis=0), 
+                            dtype='float')
 
         self.LJC = self._statistic(variables, w)
 

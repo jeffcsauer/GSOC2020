@@ -109,6 +109,11 @@ class Local_Join_Count_BV(BaseEstimator):
         """
         x = np.asarray(x).flatten()
         z = np.asarray(z).flatten()
+        
+        # Need to ensure that the np.array() are of
+        # dtype='float' for numba
+        x = np.array(x, dtype='float')
+        z = np.array(z, dtype='float')
 
         w = self.connectivity
         # Fill the diagonal with 0s
