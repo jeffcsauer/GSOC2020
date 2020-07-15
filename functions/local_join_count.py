@@ -96,12 +96,6 @@ class Local_Join_Count(BaseEstimator):
         >>> LJC_uni.LJC
         >>> LJC_uni.p_sim
         """
-        y = np.asarray(y).flatten()
-        
-        # Need to ensure that the np.array() are of
-        # dtype='float' for numba
-        y = np.array(y, dtype='float')
-
         w = self.connectivity
         # Fill the diagonal with 0s
         w = weights.util.fill_diagonal(w, val=0)
@@ -110,12 +104,14 @@ class Local_Join_Count(BaseEstimator):
         keep_simulations = self.keep_simulations
         n_jobs = self.n_jobs
         seed = self.seed
-
-        self.y = y
+        
+        # Need to ensure that the np.array() are of
+        # dtype='float' for numba
+        self.y = np.array(y, dtype='float')
         self.n = len(y)
         self.w = w
 
-        self.LJC = self._statistic(y, w)
+        self.LJC = self._statistic(self.y, w)
 
         if permutations:
             self.p_sim, self.rjoins = _crand_plus(

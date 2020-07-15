@@ -100,16 +100,13 @@ class Local_Join_Count_BV(BaseEstimator):
         >>> guerry_ds = gpd.read_file(guerry.get_path('Guerry.shp'))
         >>> guerry_ds['infq5'] = 0
         >>> guerry_ds['donq5'] = 0
-        >>> guerry_ds.loc[(guerry['Infants'] > 23574), 'infq5'] = 1
-        >>> guerry_ds.loc[(guerry['Donatns'] > 10973), 'donq5'] = 1
+        >>> guerry_ds.loc[(guerry_ds['Infants'] > 23574), 'infq5'] = 1
+        >>> guerry_ds.loc[(guerry_ds['Donatns'] > 10973), 'donq5'] = 1
         >>> w = libpysal.weights.Queen.from_dataframe(guerry_ds)
         >>> LJC_BV_Case2 = Local_Join_Count_BV(connectivity=w).fit(guerry_ds['infq5'], guerry_ds['donq5'], case='CLC')
         >>> LJC_BV_Case2.LJC
         >>> LJC_BV_Case2.p_sim
         """
-        x = np.asarray(x).flatten()
-        z = np.asarray(z).flatten()
-        
         # Need to ensure that the np.array() are of
         # dtype='float' for numba
         x = np.array(x, dtype='float')
