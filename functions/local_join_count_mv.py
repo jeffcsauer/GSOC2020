@@ -52,7 +52,7 @@ class Local_Join_Count_MV(BaseEstimator):
         self.keep_simulations = keep_simulations
         self.seed = seed
 
-    def fit(self, variables, permutations=999):
+    def fit(self, variables, n_jobs=1, permutations=999):
         """
         Arguments
         ---------
@@ -123,7 +123,7 @@ class Local_Join_Count_MV(BaseEstimator):
                 observed=self.LJC,
                 permutations=permutations, 
                 keep=True, 
-                n_jobs=1,
+                n_jobs=n_jobs,
                 stat_func=_ljc_mv
             )
             # Set p-values for those with LJC of 0 to NaN
@@ -174,6 +174,8 @@ class Local_Join_Count_MV(BaseEstimator):
 # --------------------------------------------------------------
 # Conditional Randomization Function Implementations
 # --------------------------------------------------------------
+
+# Note: scaling not used
 
 @_njit(fastmath=True)
 def _ljc_mv(i, z, permuted_ids, weights_i, scaling):

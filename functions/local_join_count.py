@@ -60,7 +60,7 @@ class Local_Join_Count(BaseEstimator):
         self.keep_simulations = keep_simulations
         self.seed = seed
 
-    def fit(self, y, permutations=999):
+    def fit(self, y, n_jobs=1, permutations=999):
         """
         Arguments
         ---------
@@ -96,6 +96,10 @@ class Local_Join_Count(BaseEstimator):
         >>> LJC_uni.LJC
         >>> LJC_uni.p_sim
         """
+        # Need to ensure that the np.array() are of
+        # dtype='float' for numba
+        y = np.array(y, dtype='float')
+
         w = self.connectivity
         # Fill the diagonal with 0s
         w = weights.util.fill_diagonal(w, val=0)
@@ -105,22 +109,20 @@ class Local_Join_Count(BaseEstimator):
         n_jobs = self.n_jobs
         seed = self.seed
         
-        # Need to ensure that the np.array() are of
-        # dtype='float' for numba
-        self.y = np.array(y, dtype='float')
+        self.y = y
         self.n = len(y)
         self.w = w
 
-        self.LJC = self._statistic(self.y, w)
-
+        self.LJC = self._statistic(y, w)
+        
         if permutations:
             self.p_sim, self.rjoins = _crand_plus(
                 z=self.y, 
                 w=self.w, 
                 observed=self.LJC,
                 permutations=permutations, 
-                keep=True, 
-                n_jobs=1,
+                keep=keep_simulations, 
+                n_jobs=n_jobs,
                 stat_func=_ljc_uni
             )
             # Set p-values for those with LJC of 0 to NaN
@@ -151,6 +153,8 @@ class Local_Join_Count(BaseEstimator):
 # --------------------------------------------------------------
 # Conditional Randomization Function Implementations
 # --------------------------------------------------------------
+
+# Note: scaling not used
 
 @_njit(fastmath=True)
 def _ljc_uni(i, z, permuted_ids, weights_i, scaling):
