@@ -56,7 +56,7 @@ class Local_Geary(BaseEstimator):
         self.keep_simulations = keep_simulations
         self.seed = seed
 
-    def fit(self, x, n_jobs=1, permutations=permutations):
+    def fit(self, x, n_jobs=1, permutations=999):
         """
         Arguments
         ---------
