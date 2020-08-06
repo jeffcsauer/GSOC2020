@@ -11,12 +11,14 @@ from esda.crand import (
     _prepare_univariate
 )
 
+
 PERMUTATIONS = 999
+
 
 class Local_Geary(BaseEstimator):
     """Local Geary - Univariate"""
 
-    def __init__(self, connectivity=None, permutations=PERMUTATIONS, n_jobs=1, 
+    def __init__(self, connectivity=None, permutations=PERMUTATIONS, n_jobs=1,
                  keep_simulations=True, seed=None):
         """
         connectivity     : scipy.sparse matrix object
@@ -24,22 +26,23 @@ class Local_Geary(BaseEstimator):
                            the relationships between observed units.
                            Need not be row-standardized.
         permutations     : int
-                           number of random permutations for calculation of pseudo
-                           p_values
+                           number of random permutations for calculation
+                           of pseudo p_values
         n_jobs           : int
-                           Number of cores to be used in the conditional randomisation. If -1,
-                           all available cores are used.    
+                           Number of cores to be used in the conditional
+                           randomisation. If -1, all available cores are used.
         keep_simulations : Boolean
                            (default=True)
-                           If True, the entire matrix of replications under the null 
-                           is stored in memory and accessible; otherwise, replications 
-                           are not saved
+                           If True, the entire matrix of replications under
+                           the null is stored in memory and accessible;
+                           otherwise, replications are not saved
         seed             : None/int
-                           Seed to ensure reproducibility of conditional randomizations. 
-                           Must be set here, and not outside of the function, since numba 
-                           does not correctly interpret external seeds 
-                           nor numpy.random.RandomState instances.  
-                           
+                           Seed to ensure reproducibility of conditional
+                           randomizations. Must be set here, and not outside
+                           of the function, since numba does not correctly
+                           interpret external seeds nor
+                           numpy.random.RandomState instances.
+
         Attributes
         ----------
         localG          : numpy array
@@ -74,11 +77,15 @@ class Local_Geary(BaseEstimator):
         Examples
         --------
         Guerry data replication GeoDa tutorial
-        >>> import libpysal
+        >>> import libpysal as lp
         >>> import geopandas as gpd
         >>> guerry = lp.examples.load_example('Guerry')
         >>> guerry_ds = gpd.read_file(guerry.get_path('Guerry.shp'))
         >>> w = libpysal.weights.Queen.from_dataframe(guerry_ds)
+        >>> y = guerry_ds['Donatns']
+        >>> lG = Local_Geary(connectivity=w).fit(y)
+        >>> lG.localG[0:5]
+        >>> lG.p_sim[0:5]
         """
         x = np.asarray(x).flatten()
 
@@ -89,16 +96,16 @@ class Local_Geary(BaseEstimator):
 
         if self.permutations:
             self.p_sim, self.rlocalG = _crand_plus(
-                z=(x - np.mean(x))/np.std(x), 
-                w=w, 
+                z=(x - np.mean(x))/np.std(x),
+                w=w,
                 observed=self.localG,
-                permutations=permutations, 
-                keep=True, 
+                permutations=permutations,
+                keep=True,
                 n_jobs=n_jobs,
                 stat_func=_local_geary
             )
-            
-        del (self.keep_simulations, self.n_jobs, 
+
+        del (self.keep_simulations, self.n_jobs,
              self.permutations, self.seed, self.rlocalG,
              self.connectivity)
 
@@ -110,18 +117,18 @@ class Local_Geary(BaseEstimator):
         zscore_x = (x - np.mean(x))/np.std(x)
         # Create focal (xi) and neighbor (zi) values
         adj_list = w.to_adjlist(remove_symmetric=False)
-        zseries = pd.Series(zscore_x, index=wq.id_order)
+        zseries = pd.Series(zscore_x, index=w.id_order)
         zi = zseries.loc[adj_list.focal].values
         zj = zseries.loc[adj_list.neighbor].values
         # Carry out local Geary calculation
-        gs = sum(list(wq.weights.values()), []) * (zi-zj)**2
+        gs = sum(list(w.weights.values()), []) * (zi-zj)**2
         # Reorganize data
         adj_list_gs = pd.DataFrame(adj_list.focal.values, gs).reset_index()
         adj_list_gs.columns = ['gs', 'ID']
         adj_list_gs = adj_list_gs.groupby(by='ID').sum()
-        
+
         localG = adj_list_gs.gs.values
-        
+
         return (localG)
 
 # --------------------------------------------------------------
@@ -129,6 +136,7 @@ class Local_Geary(BaseEstimator):
 # --------------------------------------------------------------
 
 # Note: does not using the scaling parameter
+
 
 @_njit(fastmath=True)
 def _local_geary(i, z, permuted_ids, weights_i, scaling):
