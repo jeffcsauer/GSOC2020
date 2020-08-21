@@ -68,10 +68,14 @@ class Local_Geary_MV(BaseEstimator):
         self.n = len(variables[0])
         self.w = w
 
-        self.localG = self._statistic(variables, w)
+        # Caclulate z-scores for input variables
+        # to be used in _statistic and _crand
+        zvariables = [stats.zscore(i) for i in variables]
+
+        self.localG = self._statistic(variables, zvariables, w)
 
         if permutations:
-            self._crand()
+            self._crand(zvariables)
             sim = np.transpose(self.Gs)
             above = sim >= self.localG
             larger = above.sum(0)
@@ -85,14 +89,12 @@ class Local_Geary_MV(BaseEstimator):
         return self
 
     @staticmethod
-    def _statistic(variables, w):
-        # Caclulate z-scores for input variables
-        zseries = [stats.zscore(i) for i in variables]
+    def _statistic(variables, zvariables, w):
         # Define denominator adjustment
         k = len(variables)
         # Create focal and neighbor values
         adj_list = w.to_adjlist(remove_symmetric=False)
-        zseries = [pd.Series(i, index=w.id_order) for i in zseries]
+        zseries = [pd.Series(i, index=w.id_order) for i in zvariables]
         focal = [zseries[i].loc[adj_list.focal].values for
                  i in range(len(variables))]
         neighbor = [zseries[i].loc[adj_list.neighbor].values for
@@ -108,7 +110,7 @@ class Local_Geary_MV(BaseEstimator):
 
         return (localG)
 
-    def _crand(self):
+    def _crand(self, zvariables):
         """
         conditional randomization
 
@@ -121,8 +123,8 @@ class Local_Geary_MV(BaseEstimator):
         neighbors to i in each randomization.
 
         """
-        nvars = variables.shape[0]
-        n = len(variables[0])
+        nvars = self.variables.shape[0]
+        n = self.variables.shape[1]
         Gs = np.zeros((self.n, self.permutations))
         n_1 = self.n - 1
         prange = list(range(self.permutations))
@@ -139,12 +141,12 @@ class Local_Geary_MV(BaseEstimator):
             np.random.shuffle(idsi)
             vars_rand = []
             for j in range(nvars):
-                vars_rand.append(zseries[j][idsi[rids[:, 0:wc[i]]]])
+                vars_rand.append(zvariables[j][idsi[rids[:, 0:wc[i]]]])
             # vars rand as tmp
             # Calculate diff
             diff = []
             for z in range(nvars):
-                diff.append((np.array((zseries[z][i]-vars_rand[z])**2
+                diff.append((np.array((zvariables[z][i]-vars_rand[z])**2
                                       * w[i])).sum(1)/nvars)
             # add up differences
             temp = np.array([sum(x) for x in zip(*diff)])
