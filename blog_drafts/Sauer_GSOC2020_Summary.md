@@ -20,8 +20,8 @@ As of the writing of this document and the end of GSOC, the following progress h
 | `Local_Join_Count_BV` <br> (bivariate)    | Yes        | Yes                          | Yes           | [PR#139](https://github.com/pysal/esda/pull/139)     | Yes |
 | `Local_Join_Count_MV` <br> (multivariate) | Yes        | Yes                          | Yes           | [PR#139](https://github.com/pysal/esda/pull/139)     | Yes |
 | *Stretch goals*
-| `Local_Geary` <br> (univariate)           | Yes        | Yes                          | Yes   | TBD | Yes |
-| `Local_Geary_MV` <br> (multivariate)      | Yes        | Yes                           | Yes   | TBD | Yes |
+| `Local_Geary` <br> (univariate)           | Yes        | Yes                          | Yes   | [PR#145](https://github.com/pysal/esda/pull/145) |Yes |
+| `Local_Geary_MV` <br> (multivariate)      | Yes        | Yes                           | Yes   | [PR#145](https://github.com/pysal/esda/pull/145) | Yes |
 
 For ease of access and perpetuity, each of the above functions are copied below. Additional links to documentation and where the most recent version of the estimator may be found is provided with each function. If you are interested in viewing the development history of these estimators, I recommend you visit the [Github repository](https://github.com/jeffcsauer/GSOC2020) where the majority of the work was carried out. 
 
@@ -29,7 +29,7 @@ For ease of access and perpetuity, each of the above functions are copied below.
 
 Links to:
 - [Documentation](https://github.com/jeffcsauer/GSOC2020/blob/master/docs/LOSH.ipynb)
-- [Location in PySAL `esda`](https://github.com/pysal/esda/blob/master/esda/losh.py)
+- [Location in PySAL `esda`](https://github.com/pysal/esda/pull/139)
 - [Location in GSOC 2020 workbook](https://github.com/jeffcsauer/GSOC2020/blob/master/functions/losh.py)
 
 Stable release version:
@@ -181,7 +181,7 @@ class losh(BaseEstimator):
 
 Links to:
 - [Documentation](https://github.com/jeffcsauer/GSOC2020/blob/master/docs/localjoincounts.ipynb)
-- [Location in PySAL `esda`](https://github.com/pysal/esda/blob/master/esda/local_join_count.py)
+- [Location in PySAL `esda`](https://github.com/pysal/esda/pull/139)
 - [Location in GSOC 2020 workbook](https://github.com/jeffcsauer/GSOC2020/blob/master/functions/local_join_count.py)
 
 Stable release version:
@@ -360,7 +360,7 @@ def _ljc_uni(i, z, permuted_ids, weights_i, scaling):
 
 Links to:
 - [Documentation](https://github.com/jeffcsauer/GSOC2020/blob/master/docs/localjoincounts.ipynb)
-- [Location in PySAL `esda`](https://github.com/pysal/esda/blob/master/esda/local_join_count_bv.py)
+- [Location in PySAL `esda`](https://github.com/pysal/esda/pull/139)
 - [Location in GSOC 2020 workbook](https://github.com/jeffcsauer/GSOC2020/blob/master/functions/local_join_count_bv.py)
 
 Stable release version:
@@ -602,7 +602,7 @@ def _ljc_bv_case2(i, z, permuted_ids, weights_i, scaling):
 
 Links to:
 - [Documentation](https://github.com/jeffcsauer/GSOC2020/blob/master/docs/localjoincounts.ipynb)
-- [Location in PySAL `esda`](https://github.com/pysal/esda/blob/master/esda/local_join_count_mv.py)
+- [Location in PySAL `esda`](https://github.com/pysal/esda/pull/139)
 - [Location in GSOC 2020 workbook](https://github.com/jeffcsauer/GSOC2020/blob/master/functions/local_join_count_mv.py)
 
 Stable release version:
@@ -804,7 +804,7 @@ def _ljc_mv(i, z, permuted_ids, weights_i, scaling):
 
 Links to:
 - [Documentation](https://github.com/jeffcsauer/GSOC2020/blob/master/docs/localgeary.ipynb)
-- [Location in PySAL `esda`](https://github.com/pysal/esda/blob/master/esda/local_geary.py)
+- [Location in PySAL `esda`](https://github.com/pysal/esda/pull/145)
 - [Location in GSOC 2020 workbook](https://github.com/jeffcsauer/GSOC2020/blob/master/functions/local_geary.py)
 
 Stable release version:
@@ -1004,7 +1004,7 @@ def _local_geary(i, z, permuted_ids, weights_i, scaling):
 
 Links to:
 - [Documentation](https://github.com/jeffcsauer/GSOC2020/blob/master/docs/localgeary.ipynb)
-- [Location in PySAL `esda`](https://github.com/pysal/esda/blob/master/esda/local_geary_mv.py)
+- [Location in PySAL `esda`](https://github.com/pysal/esda/pull/145)
 - [Location in GSOC 2020 workbook](https://github.com/jeffcsauer/GSOC2020/blob/master/functions/local_geary_mv.py)
 
 Stable release version:
