@@ -11,7 +11,7 @@ Each estimator includes docstrings, doctests, tests, and an example notebook dem
 
 - Implement univariate and multivariate local Geary estimators
 
-As of the writing of this document and the end of GSOC, the following progress has been made across all of the above objectives:
+As of the writing of this document at the end of GSOC, the following progress has been made across all of the above objectives:
 
 | Function              | Generating correct values | Generating correct inference | Documentation | Pull request | Overall, complete?      |
 |-----------------------|---------------------------|------------------------------|---------------|--------------|-------------------------|
@@ -23,7 +23,7 @@ As of the writing of this document and the end of GSOC, the following progress h
 | `Local_Geary` <br> (univariate)           | Yes        | Yes                          | Yes   | [PR#145](https://github.com/pysal/esda/pull/145) |Yes |
 | `Local_Geary_MV` <br> (multivariate)      | Yes        | Yes                           | Yes   | [PR#145](https://github.com/pysal/esda/pull/145) | Yes |
 
-For ease of access and perpetuity, each of the above functions are copied below. Additional links to documentation and where the most recent version of the estimator may be found is provided with each function. If you are interested in viewing the development history of these estimators, I recommend you visit the [Github repository](https://github.com/jeffcsauer/GSOC2020) where the majority of the work was carried out. 
+For ease of access and perpetuity, each of the above functions are copied below. Additional links to documentation and where the most recent version of the estimator may be found is provided with each function. If you are interested in viewing the development history of these estimators, I recommend you visit the [Github repository](https://github.com/jeffcsauer/GSOC2020) where the majority of the work was carried out. A final blog post reflecting on my experience with the Google Summer of Code 2020 program is available [here](https://jeffcsauer.github.io/post/2020/08/24/gsoc-blog-11-a-conclusion-to-gsoc/).
 
 ## Local Spatial Heteroskedasticity (LOSH)
 
@@ -1075,6 +1075,11 @@ class Local_Geary_MV(BaseEstimator):
         >>> guerry = lp.examples.load_example('Guerry')
         >>> guerry_ds = gpd.read_file(guerry.get_path('Guerry.shp'))
         >>> w = libpysal.weights.Queen.from_dataframe(guerry_ds)
+        >>> x1 = guerry_ds['Donatns']
+        >>> x2 = guerry_ds['Suicids']
+        >>> lG_mv = Local_Geary(connectivity=w).fit([x1,x2])
+        >>> lG_mv.localG[0:5]
+        >>> lG_mv.p_sim[0:5]
         """
         self.variables = np.array(variables, dtype='float')
 
