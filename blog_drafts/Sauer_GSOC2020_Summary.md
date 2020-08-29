@@ -47,10 +47,10 @@ from sklearn.base import BaseEstimator
 import libpysal as lp
 
 
-class losh(BaseEstimator):
+class LOSH(BaseEstimator):
     """Local spatial heteroscedasticity (LOSH)"""
 
-    def __init__(self, connectivity=None, inference=None):
+    def __init__(self, connectivity=None, inference=None, a=2):
         """
         Initialize a losh estimator
 
@@ -62,6 +62,10 @@ class losh(BaseEstimator):
         inference        : str
                            describes type of inference to be used. options are
                            "chi-square" or "permutation" methods.
+        a                : int
+                           residual multiplier. Default is 2 in order
+                           to generate a variance measure. Users may
+                           use 1 for absolute deviations.
 
         Attributes
         ----------
@@ -80,17 +84,14 @@ class losh(BaseEstimator):
 
         self.connectivity = connectivity
         self.inference = inference
+        self.a = a
 
-    def fit(self, y, a=2):
+    def fit(self, x):
         """
         Arguments
         ---------
-        y                : numpy.ndarray
+        x                : numpy.ndarray
                            array containing continuous data
-        a                : int
-                           residual multiplier. Default is 2 in order
-                           to generate a variance measure. Users may
-                           use 1 for absolute deviations.
 
         Returns
         -------
@@ -105,27 +106,28 @@ class losh(BaseEstimator):
         >>> import libpysal
         >>> w = libpysal.io.open(libpysal.examples.get_path("stl.gal")).read()
         >>> f = libpysal.io.open(libpysal.examples.get_path("stl_hom.txt"))
-        >>> y = np.array(f.by_col['HR8893'])
+        >>> x = np.array(f.by_col['HR8893'])
         >>> from esda import losh
-        >>> ls = losh(connectivity=w, inference="chi-square").fit(y)
+        >>> ls = losh(connectivity=w, inference="chi-square").fit(x)
         >>> np.round(ls.Hi[0], 3)
         >>> np.round(ls.pval[0], 3)
 
         Boston housing data replicating R spdep::LOSH()
         >>> import libpysal
-        >>> import geopandas as gpd
         >>> boston = libpysal.examples.load_example('Bostonhsg')
-        >>> boston_ds = gpd.read_file(boston.get_path('boston.shp'))
+        >>> boston_ds = geopandas.read_file(boston.get_path('boston.shp'))
         >>> w = libpysal.weights.Queen.from_dataframe(boston_ds)
         >>> ls = losh(connectivity=w, inference="chi-square").fit(boston['NOX'])
         >>> np.round(ls.Hi[0], 3)
         >>> np.round(ls.VarHi[0], 3)
         """
-        y = np.asarray(y).flatten()
+        x = np.asarray(x).flatten()
 
         w = self.connectivity
 
-        self.Hi, self.ylag, self.yresid, self.VarHi = self._statistic(y, w, a)
+        a = self.a
+
+        self.Hi, self.ylag, self.yresid, self.VarHi = self._statistic(x, w, a)
 
         if self.inference is None:
             return self
@@ -144,7 +146,7 @@ class losh(BaseEstimator):
         return self
 
     @staticmethod
-    def _statistic(y, w, a):
+    def _statistic(x, w, a):
         # Define what type of variance to use
         if a is None:
             a = 2
@@ -154,9 +156,9 @@ class losh(BaseEstimator):
         rowsum = np.array(w.sparse.sum(axis=1)).flatten()
 
         # Calculate spatial mean
-        ylag = lp.weights.lag_spatial(w, y)/rowsum
+        ylag = lp.weights.lag_spatial(w, x)/rowsum
         # Calculate and adjust residuals based on multiplier
-        yresid = abs(y-ylag)**a
+        yresid = abs(x-ylag)**a
         # Calculate denominator of Hi equation
         denom = np.mean(yresid) * np.array(rowsum)
         # Carry out final Hi calculation
@@ -164,7 +166,7 @@ class losh(BaseEstimator):
         # Calculate average of residuals
         yresid_mean = np.mean(yresid)
         # Calculate VarHi
-        n = len(y)
+        n = len(x)
         squared_rowsum = np.asarray(w.sparse.multiply(w.sparse).sum(axis=1)).flatten()
 
         VarHi = ((n-1)**-1) * \
@@ -190,6 +192,7 @@ Stable release version:
   <summary>Click to expand code</summary>
   
 ``` python
+
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
@@ -201,14 +204,11 @@ from esda.crand import (
 )
 
 
-PERMUTATIONS = 999
-
-
 class Local_Join_Count(BaseEstimator):
 
     """Univariate Local Join Count Statistic"""
 
-    def __init__(self, connectivity=None, permutations=PERMUTATIONS, n_jobs=1, 
+    def __init__(self, connectivity=None, permutations=999, n_jobs=1, 
                  keep_simulations=True, seed=None):
         """
         Initialize a Local_Join_Count estimator
@@ -252,11 +252,11 @@ class Local_Join_Count(BaseEstimator):
         self.keep_simulations = keep_simulations
         self.seed = seed
 
-    def fit(self, y, n_jobs=1, permutations=999):
+    def fit(self, x):
         """
         Arguments
         ---------
-        y               : numpy.ndarray
+        x               : numpy.ndarray
                           array containing binary (0/1) data
         Returns
         -------
@@ -270,9 +270,9 @@ class Local_Join_Count(BaseEstimator):
         --------
         >>> import libpysal
         >>> w = libpysal.weights.lat2W(4, 4)
-        >>> y = np.ones(16)
-        >>> y[0:8] = 0
-        >>> LJC_uni = Local_Join_Count(connectivity=w).fit(y)
+        >>> x = np.ones(16)
+        >>> x[0:8] = 0
+        >>> LJC_uni = Local_Join_Count(connectivity=w).fit(x)
         >>> LJC_uni.LJC
         >>> LJC_uni.p_sim
 
@@ -290,7 +290,7 @@ class Local_Join_Count(BaseEstimator):
         """
         # Need to ensure that the np.array() are of
         # dtype='float' for numba
-        y = np.array(y, dtype='float')
+        x = np.array(x, dtype='float')
 
         w = self.connectivity
         # Fill the diagonal with 0s
@@ -301,15 +301,17 @@ class Local_Join_Count(BaseEstimator):
         n_jobs = self.n_jobs
         seed = self.seed
         
-        self.y = y
-        self.n = len(y)
+        permutations = self.permutations
+        
+        self.x = x
+        self.n = len(x)
         self.w = w
 
-        self.LJC = self._statistic(y, w)
+        self.LJC = self._statistic(x, w)
         
         if permutations:
             self.p_sim, self.rjoins = _crand_plus(
-                z=self.y, 
+                z=self.x, 
                 w=self.w, 
                 observed=self.LJC,
                 permutations=permutations, 
@@ -321,17 +323,17 @@ class Local_Join_Count(BaseEstimator):
             self.p_sim[self.LJC == 0] = 'NaN'
         
         del (self.n, self.keep_simulations, self.n_jobs, 
-             self.permutations, self.seed, self.w, self.y,
+             self.permutations, self.seed, self.w, self.x,
              self.connectivity, self.rjoins)
         
         return self
 
     @staticmethod
-    def _statistic(y, w):
+    def _statistic(x, w):
         # Create adjacency list. Note that remove_symmetric=False - this is
         # different from the esda.Join_Counts() function.
         adj_list = w.to_adjlist(remove_symmetric=False)
-        zseries = pd.Series(y, index=w.id_order)
+        zseries = pd.Series(x, index=w.id_order)
         focal = zseries.loc[adj_list.focal].values
         neighbor = zseries.loc[adj_list.neighbor].values
         LJC = (focal == 1) & (neighbor == 1)
@@ -352,6 +354,7 @@ class Local_Join_Count(BaseEstimator):
 def _ljc_uni(i, z, permuted_ids, weights_i, scaling):
     zi, zrand = _prepare_univariate(i, z, permuted_ids, weights_i)
     return zi * (zrand @ weights_i)
+
 ```
 
 </details>
@@ -369,6 +372,7 @@ Stable release version:
   <summary>Click to expand code</summary>
   
 ``` python
+
 import numpy as np
 import pandas as pd
 import warnings
@@ -383,14 +387,11 @@ from esda.crand import (
 )
 
 
-PERMUTATIONS = 999
-
-
 class Local_Join_Count_BV(BaseEstimator):
 
     """Univariate Local Join Count Statistic"""
 
-    def __init__(self, connectivity=None, permutations=PERMUTATIONS, n_jobs=1, 
+    def __init__(self, connectivity=None, permutations=999, n_jobs=1, 
                  keep_simulations=True, seed=None):
         """
         Initialize a Local_Join_Count_BV estimator
@@ -425,14 +426,19 @@ class Local_Join_Count_BV(BaseEstimator):
         self.keep_simulations = keep_simulations
         self.seed = seed
 
-    def fit(self, x, z, case="CLC", n_jobs=1, permutations=999):
+    def fit(self, x, y, case="CLC"):
         """
         Arguments
         ---------
         x                : numpy.ndarray
                            array containing binary (0/1) data
-        z                : numpy.ndarray
+        y                : numpy.ndarray
                            array containing binary (0/1) data
+        case             : str
+                           "BJC" for bivariate local join count,
+                           "CLC" for co-location local join count.
+                           Details in :cite:`AnselinLi2019`.
+
         Returns
         -------
         the fitted estimator.
@@ -447,9 +453,9 @@ class Local_Join_Count_BV(BaseEstimator):
         >>> w = libpysal.weights.lat2W(4, 4)
         >>> x = np.ones(16)
         >>> x[0:8] = 0
-        >>> z = [0,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1]
-        >>> LJC_BV_C1 = Local_Join_Count_BV(connectivity=w).fit(x, z, case="BJC")
-        >>> LJC_BV_C2 = Local_Join_Count_BV(connectivity=w).fit(x, z, case="CLC")
+        >>> y = [0,1,0,1,1,1,1,1,0,0,1,1,0,0,1,1]
+        >>> LJC_BV_C1 = Local_Join_Count_BV(connectivity=w).fit(x, y, case="BJC")
+        >>> LJC_BV_C2 = Local_Join_Count_BV(connectivity=w).fit(x, y, case="CLC")
         >>> LJC_BV_C1.LJC
         >>> LJC_BV_C1.p_sim
         >>> LJC_BV_C2.LJC
@@ -481,7 +487,7 @@ class Local_Join_Count_BV(BaseEstimator):
         # Need to ensure that the np.array() are of
         # dtype='float' for numba
         x = np.array(x, dtype='float')
-        z = np.array(z, dtype='float')
+        y = np.array(y, dtype='float')
 
         w = self.connectivity
         # Fill the diagonal with 0s
@@ -489,7 +495,7 @@ class Local_Join_Count_BV(BaseEstimator):
         w.transform = 'b'
 
         self.x = x
-        self.z = z
+        self.y = y
         self.n = len(x)
         self.w = w
         self.case = case
@@ -497,13 +503,15 @@ class Local_Join_Count_BV(BaseEstimator):
         keep_simulations = self.keep_simulations
         n_jobs = self.n_jobs
         seed = self.seed
+        
+        permutations = self.permutations
 
-        self.LJC = self._statistic(x, z, w, case=case)
+        self.LJC = self._statistic(x, y, w, case=case)
 
         if permutations:
             if case == "BJC":
                 self.p_sim, self.rjoins = _crand_plus(
-                    z=np.column_stack((x, z)),
+                    z=np.column_stack((x, y)),
                     w=self.w, 
                     observed=self.LJC,
                     permutations=permutations, 
@@ -515,7 +523,7 @@ class Local_Join_Count_BV(BaseEstimator):
                 self.p_sim[self.LJC == 0] = 'NaN'
             elif case == "CLC":
                 self.p_sim, self.rjoins = _crand_plus(
-                    z=np.column_stack((x, z)),
+                    z=np.column_stack((x, y)),
                     w=self.w, 
                     observed=self.LJC,
                     permutations=permutations, 
@@ -531,12 +539,12 @@ class Local_Join_Count_BV(BaseEstimator):
 
         del (self.n, self.keep_simulations, self.n_jobs, 
              self.permutations, self.seed, self.w, self.x,
-             self.z, self.connectivity, self.rjoins)
+             self.y, self.connectivity, self.rjoins)
                 
         return self
 
     @staticmethod
-    def _statistic(x, z, w, case):
+    def _statistic(x, y, w, case):
         # Create adjacency list. Note that remove_symmetric=False - this is
         # different from the esda.Join_Counts() function.
         adj_list = w.to_adjlist(remove_symmetric=False)
@@ -544,27 +552,27 @@ class Local_Join_Count_BV(BaseEstimator):
         # First, set up a series that maps the values
         # to the weights table
         zseries_x = pd.Series(x, index=w.id_order)
-        zseries_z = pd.Series(z, index=w.id_order)
+        zseries_y = pd.Series(y, index=w.id_order)
 
         # Map the values to the focal (i) values
         focal_x = zseries_x.loc[adj_list.focal].values
-        focal_z = zseries_z.loc[adj_list.focal].values
+        focal_y = zseries_y.loc[adj_list.focal].values
 
         # Map the values to the neighbor (j) values
         neighbor_x = zseries_x.loc[adj_list.neighbor].values
-        neighbor_z = zseries_z.loc[adj_list.neighbor].values
+        neighbor_y = zseries_y.loc[adj_list.neighbor].values
 
         if case == "BJC":
-            BJC = (focal_x == 1) & (focal_z == 0) & \
-                  (neighbor_x == 0) & (neighbor_z == 1)
+            BJC = (focal_x == 1) & (focal_y == 0) & \
+                  (neighbor_x == 0) & (neighbor_y == 1)
             adj_list_BJC = pd.DataFrame(adj_list.focal.values,
                                         BJC.astype('uint8')).reset_index()
             adj_list_BJC.columns = ['BJC', 'ID']
             adj_list_BJC = adj_list_BJC.groupby(by='ID').sum()
             return (np.array(adj_list_BJC.BJC.values, dtype='float'))
         elif case == "CLC":
-            CLC = (focal_x == 1) & (focal_z == 1) & \
-                  (neighbor_x == 1) & (neighbor_z == 1)
+            CLC = (focal_x == 1) & (focal_y == 1) & \
+                  (neighbor_x == 1) & (neighbor_y == 1)
             adj_list_CLC = pd.DataFrame(adj_list.focal.values,
                                         CLC.astype('uint8')).reset_index()
             adj_list_CLC.columns = ['CLC', 'ID']
@@ -594,6 +602,7 @@ def _ljc_bv_case2(i, z, permuted_ids, weights_i, scaling):
     zxi, zxrand, zyi, zyrand = _prepare_bivariate(i, z, permuted_ids, weights_i)
     zf = zxrand * zyrand
     return zy[i] * (zf @ weights_i)
+
 ```
 
 </details>
@@ -624,14 +633,11 @@ from esda.crand import (
 )
 
 
-PERMUTATIONS = 999
-
-
 class Local_Join_Count_MV(BaseEstimator):
 
     """Multivariate Local Join Count Statistic"""
 
-    def __init__(self, connectivity=None, permutations=PERMUTATIONS, n_jobs=1, 
+    def __init__(self, connectivity=None, permutations=999, n_jobs=1, 
                  keep_simulations=True, seed=None):
         """
         Initialize a Local_Join_Count_MV estimator
@@ -666,12 +672,13 @@ class Local_Join_Count_MV(BaseEstimator):
         self.keep_simulations = keep_simulations
         self.seed = seed
 
-    def fit(self, variables, n_jobs=1, permutations=999):
+    def fit(self, variables):
         """
         Arguments
         ---------
         variables     : numpy.ndarray
                         array(s) containing binary (0/1) data
+
         Returns
         -------
         the fitted estimator.
@@ -716,6 +723,8 @@ class Local_Join_Count_MV(BaseEstimator):
 
         self.n = len(variables[0])
         self.w = w
+        
+        permutations = self.permutations
 
         self.variables = np.array(variables, dtype='float')
         
@@ -828,17 +837,17 @@ from esda.crand import (
 )
 
 
-PERMUTATIONS = 999
-SIG = 0.05
-
-
 class Local_Geary(BaseEstimator):
+
     """Local Geary - Univariate"""
 
-    def __init__(self, connectivity=None, labels=False, sig=SIG,
-                 permutations=PERMUTATIONS, n_jobs=1, keep_simulations=True,
+    def __init__(self, connectivity=None, labels=False, sig=0.05,
+                 permutations=999, n_jobs=1, keep_simulations=True,
                  seed=None):
         """
+        Initialize a Local_Geary estimator
+        Arguments
+        ---------
         connectivity     : scipy.sparse matrix object
                            the connectivity structure describing
                            the relationships between observed units.
@@ -856,9 +865,11 @@ class Local_Geary(BaseEstimator):
                            Default significance threshold used for
                            creation of labels groups.
         permutations     : int
+                           (default=999)
                            number of random permutations for calculation
                            of pseudo p_values
         n_jobs           : int
+                           (default=1)
                            Number of cores to be used in the conditional
                            randomisation. If -1, all available cores are used.
         keep_simulations : Boolean
@@ -893,7 +904,7 @@ class Local_Geary(BaseEstimator):
         self.keep_simulations = keep_simulations
         self.seed = seed
 
-    def fit(self, x, n_jobs=1, permutations=999):
+    def fit(self, x):
         """
         Arguments
         ---------
@@ -925,10 +936,15 @@ class Local_Geary(BaseEstimator):
 
         w = self.connectivity
         w.transform = 'r'
+        
+        permutations = self.permutations
+        sig = self.sig
+        n_jobs = self.n_jobs
+        seed = self.seed
 
         self.localG = self._statistic(x, w)
 
-        if self.permutations:
+        if permutations:
             self.p_sim, self.rlocalG = _crand_plus(
                 z=(x - np.mean(x))/np.std(x),
                 w=w,
@@ -947,16 +963,16 @@ class Local_Geary(BaseEstimator):
             # Outliers
             self.labs[(self.localG < Eij_mean) &
                       (y > y_mean) &
-                      (self.p_sim <= self.sig)] = 1
+                      (self.p_sim <= sig)] = 1
             # Clusters
             self.labs[(self.localG < Eij_mean) &
                       (y < y_mean) &
-                      (self.p_sim <= self.sig)] = 2
+                      (self.p_sim <= sig)] = 2
             # Other
             self.labs[(self.localG > Eij_mean) &
-                      (self.p_sim <= self.sig)] = 3
+                      (self.p_sim <= sig)] = 3
             # Non-significant
-            self.labs[self.p_sim > self.sig] = 4
+            self.labs[self.p_sim > sig] = 4
 
         del (self.keep_simulations, self.n_jobs,
              self.permutations, self.seed, self.rlocalG,
@@ -990,7 +1006,6 @@ class Local_Geary(BaseEstimator):
 
 # Note: does not using the scaling parameter
 
-
 @_njit(fastmath=True)
 def _local_geary(i, z, permuted_ids, weights_i, scaling):
     zi, zrand = _prepare_univariate(i, z, permuted_ids, weights_i)
@@ -1023,20 +1038,21 @@ from sklearn.base import BaseEstimator
 import libpysal as lp
 
 
-PERMUTATIONS = 999
-
-
 class Local_Geary_MV(BaseEstimator):
 
     """Local Geary - Multivariate"""
 
-    def __init__(self, connectivity=None, permutations=PERMUTATIONS):
+    def __init__(self, connectivity=None, permutations=999):
         """
+        Initialize a Local_Geary_MV estimator
+        Arguments
+        ---------
         connectivity     : scipy.sparse matrix object
                            the connectivity structure describing
                            the relationships between observed units.
                            Need not be row-standardized.
         permutations     : int
+                           (default=999)
                            number of random permutations for calculation
                            of pseudo p_values
         Attributes
@@ -1052,7 +1068,7 @@ class Local_Geary_MV(BaseEstimator):
         self.connectivity = connectivity
         self.permutations = permutations
 
-    def fit(self, variables, permutations=999):
+    def fit(self, variables):
         """
         Arguments
         ---------
@@ -1075,6 +1091,11 @@ class Local_Geary_MV(BaseEstimator):
         >>> guerry = lp.examples.load_example('Guerry')
         >>> guerry_ds = gpd.read_file(guerry.get_path('Guerry.shp'))
         >>> w = libpysal.weights.Queen.from_dataframe(guerry_ds)
+        >>> import libpysal
+        >>> import geopandas as gpd
+        >>> guerry = lp.examples.load_example('Guerry')
+        >>> guerry_ds = gpd.read_file(guerry.get_path('Guerry.shp'))
+        >>> w = libpysal.weights.Queen.from_dataframe(guerry_ds)
         >>> x1 = guerry_ds['Donatns']
         >>> x2 = guerry_ds['Suicids']
         >>> lG_mv = Local_Geary(connectivity=w).fit([x1,x2])
@@ -1088,6 +1109,8 @@ class Local_Geary_MV(BaseEstimator):
 
         self.n = len(variables[0])
         self.w = w
+        
+        permutations = self.permutations
 
         # Caclulate z-scores for input variables
         # to be used in _statistic and _crand
